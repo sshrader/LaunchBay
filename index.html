@@ -337,7 +337,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     $('feenote').textContent=pickSlot==='founder'?'Founder launch: all creator fees go to your wallet.':feeNoteBase;
   }
   // optional quote pairs: only shown when the server has ENABLE_PAIRS on (mainnet). SOL stays the default.
-  var KNOWN_QUOTES={'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC'},pairsLoaded=false;
+  var KNOWN_QUOTES={'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC','SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb':'SpaceX (SPCX)'},pairsLoaded=false;
   function pairValue(){var w=$('pairwrap');return(w&&!w.hidden&&$('pair').value!=='SOL')?$('pair').value:'SOL'}
   function pairChanged(){
     var paired=pairValue()!=='SOL',b=$('buy');
