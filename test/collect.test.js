@@ -31,7 +31,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'launchbay-'));
   process.env.IMAGE_SECRET = 'test-secret';
   process.env.LAUNCH_RETRY_MS = '5';
-  process.env.ADMIN_TOKEN = 'a'.repeat(32);
+  process.env.ADMIN_TOKEN = 'a'.repeat(32); process.env.SLOTS = '4';
   const PUMP = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
 
   // A fake chain: transactions by signature.
@@ -298,6 +298,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
     for (let n = 0; n < 24; n++) { const t = artM.traitsFor(n, 'unit-secret'); names.add(t.name); looks.add((() => { return artM.png(n, 'unit-secret', 64).toString('base64'); })()); }
     check('agents in a set each have their own name and their own picture', names.size === 24 && looks.size === 24);
     check('every slot is an astronaut with a role from the list, and the set has no teams', [0, 1, 2, 3, 4, 5, 6, 7].every((n) => { const a = artM.agentFor(n, 'unit-secret'); return !('team' in a) && artM.ROLES[a.role] && /^[A-Z]+$/.test(a.name); }));
+    check('the first eight astronauts are all different roles', new Set([0, 1, 2, 3, 4, 5, 6, 7].map((n) => artM.agentFor(n, 'unit-secret').role)).size === 8);
     check('ships: six designs, an unknown ship falls back to nova on the server', require('../ships.js').SHIPS.length === 6 && require('../ships.js').isShip('falcon') && !require('../ships.js').isShip('x'));
     const ag = artM.agentFor(0, 'unit-secret'), ag2 = artM.agentFor(0, 'unit-secret'), ag3 = artM.agentFor(0, 'other-secret');
     check('an agent is the same every time for the same secret', JSON.stringify(ag) === JSON.stringify(ag2) && ag.name && ag.role && ag.blurb);

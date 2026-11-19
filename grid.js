@@ -21,7 +21,12 @@ const SPECIES = {
   trooper: { name: 'Trooper', w: 14, looks: mk([lk('Gunmetal suit', '#4a4e5e', '#ff9a5c', '#ff9a5c'), lk('Black suit', '#22222c', '#ff4fd8', '#ff9a5c'), lk('Green suit', '#3c5a3a', '#c9b458', '#ffb07a'), lk('Crimson suit', '#7a2430', '#e9ecf6', '#ff9a5c')]) },
   scientist: { name: 'Scientist', w: 14, looks: mk([lk('White suit', '#f2f4fa', '#9d7bff', '#c9b8ff'), lk('Sky suit', '#7fb4e8', '#ffffff', '#d8ccff'), lk('Pink suit', '#e89ac8', '#ffffff', '#d8ccff'), lk('Lime suit', '#9ac84a', '#2a2a34', '#c9b8ff')]) },
 };
-const ACCS = [['none', 30], ['plaster', 20], ['beacon', 26], ['patch', 24]];
+const ACCS = [['none', 22], ['plaster', 12], ['beacon', 16], ['patch', 14], ['eyepatch', 8], ['freckles', 12], ['facepaint', 8]];
+const HAIR_COLS = ['#2a1a12', '#4a3020', '#141018', '#8a8a8a', '#e8e8f0', '#c8383f', '#ff4fd8', '#4de3ff', '#9d7bff', '#d8b25a'];
+const BEARDS = [['none', 34], ['stubble', 16], ['full', 14], ['goatee', 12], ['mustache', 14], ['chops', 10]];
+const GLASSES = [['none', 62], ['round', 16], ['shades', 22]];
+// roles that wear a comm cap show no hair; the others show a hairstyle picked from their own list
+const HAIRDO = { RANGER: ['short', 'mohawk', 'long', 'bald'], ENGINEER: ['short', 'curly', 'bun', 'bald'], NAVIGATOR: ['mohawk', 'long', 'curly', 'bun'], OBSERVER: ['short', 'long', 'afro', 'bun'], TROOPER: ['bald', 'short', 'mohawk'], SCIENTIST: ['wild', 'afro', 'curly', 'bun'] };
 const ACC_COL = ['#ffd98a', '#4de3ff', '#ff4fd8', '#e8e8f0', '#ff9a5c', '#9d7bff', '#ff5d7a'];
 const BGS = ['#070b1f', '#0d0a26', '#060f22', '#12091f'];
 const NAMES = ['ORION', 'VEGA', 'LYRA', 'NOVA', 'COMET', 'ASTRA', 'ZENITH', 'PULSAR', 'QUASAR', 'NEBULA', 'HALLEY', 'TITAN', 'EUROPA', 'CALLISTO', 'RIGEL', 'SIRIUS', 'ALTAIR', 'DENEB', 'ATLAS', 'HYDRA', 'DRACO', 'LUNA', 'APOLLO', 'GEMINI', 'ARTEMIS', 'MERCURY', 'VOYAGER', 'KEPLER', 'HUBBLE', 'CASSINI', 'ECLIPSE', 'METEOR', 'AURORA', 'CYGNUS', 'PHOENIX', 'ROVER', 'CELESTE', 'ZEPHYR', 'COSMO', 'STELLA', 'JUPITER', 'SATURN', 'PERSEUS', 'TAURUS', 'ARIES', 'VIRGO', 'ANDROMEDA', 'ORBIT', 'SOLSTICE', 'EQUINOX', 'ASTEROID', 'GALAXY'];
@@ -67,15 +72,21 @@ function traitsFor(slot, secret) {
   let list = traitCache.get(ck);
   if (!list) { list = { rnd: prng(crypto.createHmac('sha256', ck).update('heist').digest()), items: [], seen: new Set(), names: new Set(), kinds: new Set() }; traitCache.set(ck, list); }
   const keys = Object.keys(SPECIES);
+  list.used = list.used || {};
   while (list.items.length <= slot) {
     let t, key, tries = 0;
     do {
-      const k = pickW(keys.map((x) => [x, SPECIES[x].w]), list.rnd())[0], look = Math.floor(list.rnd() * SPECIES[k].looks.length);
+      // every role is handed out once before any role repeats
+      const low = Math.min(...keys.map((x) => list.used[x] || 0)), pool = keys.filter((x) => (list.used[x] || 0) === low);
+      const k = pickW(pool.map((x) => [x, SPECIES[x].w]), list.rnd())[0], look = Math.floor(list.rnd() * SPECIES[k].looks.length);
+      const R = k.toUpperCase(), dos = HAIRDO[R];
       t = { species: k, look, acc: pickW(ACCS, list.rnd())[0], accColor: Math.floor(list.rnd() * ACC_COL.length), bg: Math.floor(list.rnd() * 4), seed: Math.floor(list.rnd() * 1e9) };
-      key = [k, look, t.acc, t.acc === 'none' ? 0 : t.accColor].join('|');
+      t.hair = dos ? dos[Math.floor(list.rnd() * dos.length)] : 'cap'; t.hairCol = Math.floor(list.rnd() * HAIR_COLS.length);
+      t.beard = pickW(BEARDS, list.rnd())[0]; t.glasses = R === 'SCIENTIST' ? 'round' : (R === 'NAVIGATOR' || R === 'OBSERVER' || t.acc === 'eyepatch' ? 'none' : pickW(GLASSES, list.rnd())[0]);
+      key = [k, look, t.acc, t.acc === 'none' ? 0 : t.accColor, t.hair, t.hairCol, t.beard, t.glasses].join('|');
       tries++;
     } while ((list.seen.has(key) || (tries < 120 && list.kinds.has(t.species + t.look) && list.kinds.size < keys.length * 4)) && tries < 200);
-    list.seen.add(key); list.kinds.add(t.species + t.look);
+    list.seen.add(key); list.kinds.add(t.species + t.look); list.used[t.species] = (list.used[t.species] || 0) + 1;
     let nm, nt = 0;
     do { nm = NAMES[Math.floor(list.rnd() * NAMES.length)]; nt++; } while (list.names.has(nm) && nt < 200);
     list.names.add(nm);
@@ -86,7 +97,7 @@ function traitsFor(slot, secret) {
 }
 function agentFor(slot, secret) {
   const t = traitsFor(slot, secret), sp = SPECIES[t.species];
-  return { name: t.name, role: t.role, blurb: ROLES[t.role].blurb, ability: ABILITIES[t.role], chassis: sp.looks[t.look].n, breed: sp.name, accessory: t.acc === 'none' ? null : t.acc };
+  return { name: t.name, role: t.role, blurb: ROLES[t.role].blurb, ability: ABILITIES[t.role], chassis: sp.looks[t.look].n, breed: sp.name, accessory: t.acc === 'none' ? null : t.acc, hair: t.hair, beard: t.beard, glasses: t.glasses };
 }
 
 // ---- a small vector painter: smooth shapes, soft shadows and gradients, 4 samples per pixel for clean edges ----
@@ -213,6 +224,35 @@ function fabricEdge(c, pts, w, col, a) { c.curve(pts, w, col, a); }
 
 // ---- the eight astronauts, then the Admiral ----
 const circ = (cx, cy, r, n) => { n = n || 24; const p = []; for (let i = 0; i <= n; i++) { const a = i * Math.PI * 2 / n; p.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return p; };
+const HAIR_PTS = {
+  short: [[14.2, 17], [14.6, 11], [18, 8], [24, 7], [30, 8], [33.4, 11], [33.8, 17], [31.4, 12.6], [24, 11], [16.6, 12.6]],
+  afro: [[11.6, 17], [12, 9.6], [16.6, 5.4], [24, 4.2], [31.4, 5.4], [36, 9.6], [36.4, 17], [33.6, 13.2], [24, 10.8], [14.4, 13.2]],
+  curly: [[13, 17], [13.2, 10.6], [17, 6.6], [24, 5.6], [31, 6.6], [34.8, 10.6], [35, 17], [32.6, 12.4], [24, 10.6], [15.4, 12.4]],
+  wild: [[11, 15], [10.4, 8], [14.4, 3.6], [19, 5.6], [24, 2.6], [29, 5.6], [33.6, 3.6], [37.6, 8], [37, 15], [33.8, 11.4], [24, 9.6], [14.2, 11.4]],
+  bun: [[14.2, 17], [14.6, 11], [18, 8], [24, 7], [30, 8], [33.4, 11], [33.8, 17], [31.4, 12.6], [24, 11], [16.6, 12.6]],
+  long: [[14, 17], [14.4, 10.6], [18, 7.6], [24, 6.8], [30, 7.6], [33.6, 10.6], [34, 17], [31.4, 12.4], [24, 10.8], [16.6, 12.4]],
+};
+function drawHair(c, style, col) {
+  if (!style || style === 'cap' || style === 'bald') { if (style === 'bald') c.soft(22, 10.6, 5.4, 2.4, [255, 255, 255], 0.22); return; }
+  const base = hx(col);
+  if (style === 'mohawk') { hairShape(c, [[21.8, 12], [21.4, 6], [22.6, 2.4], [24, 1.2], [25.4, 2.4], [26.6, 6], [26.2, 12], [24, 10.8]], col, { sx: 23, sy: 4, glint: 0.3 }); c.soft(24, 12.4, 9, 2.6, dk(base, 0.5), 0.4); return; }
+  if (style === 'long') { hairShape(c, [[14, 15], [12.4, 22], [12.8, 31], [15.6, 31.8], [15.6, 22], [16, 15]], col, { sx: 14, sy: 22, glint: 0.12 }); hairShape(c, [[34, 15], [35.6, 22], [35.2, 31], [32.4, 31.8], [32.4, 22], [32, 15]], col, { sx: 34, sy: 22, glint: 0.1 }); }
+  hairShape(c, HAIR_PTS[style] || HAIR_PTS.short, col, { sx: 21, sy: 8.6, glint: 0.2 });
+  if (style === 'bun') { c.ell(24, 4.4, 3.4, 3.2, (x, y) => mix(lt(base, 0.12), dk(base, 0.7), clamp((x - 20) / 8 + (y - 1) / 6, 0, 1))); c.soft(23, 3.4, 2, 1, [255, 255, 255], 0.2); }
+  if (style === 'curly') for (const p of [[16, 8.6], [20, 5.8], [24, 5], [28, 5.8], [32, 8.6], [14, 13], [34, 13]]) c.ell(p[0], p[1], 2.4, 2.2, (x, y) => mix(lt(base, 0.1), dk(base, 0.65), clamp((x - p[0] + 2.4) / 5 + (y - p[1] + 2) / 4, 0, 1)));
+}
+function drawBeard(c, kind, col) {
+  if (!kind || kind === 'none') return; const b = hx(col), sh = (x, y) => mix(lt(b, 0.06), dk(b, 0.7), clamp((x - 16) / 18 + (y - 26) / 12, 0, 1));
+  if (kind === 'stubble') return;
+  if (kind === 'full') { c.poly(spline([[15.4, 22], [16.4, 28.6], [19.8, 33.6], [24, 35.6], [28.2, 33.6], [31.6, 28.6], [32.6, 22], [31, 27], [27.4, 30.4], [24, 30.8], [20.6, 30.4], [17, 27]], true), sh); c.poly([[20.2, 27], [22.8, 26.2], [24, 26.6], [25.2, 26.2], [27.8, 27], [26.2, 28.2], [24, 27.8], [21.8, 28.2]], sh, 1, true); c.soft(24, 29.6, 2.4, 0.8, [120, 40, 40], 0.5); }
+  else if (kind === 'goatee') { c.poly(spline([[21.2, 30.4], [26.8, 30.4], [26.4, 34], [24, 35.8], [21.6, 34]], true), sh); c.poly([[20.4, 27], [22.8, 26.2], [24, 26.6], [25.2, 26.2], [27.6, 27], [26, 28], [24, 27.6], [22, 28]], sh, 1, true); }
+  else if (kind === 'mustache') c.poly([[18.6, 27.4], [21.4, 25.8], [24, 26.4], [26.6, 25.8], [29.4, 27.4], [27.4, 28.6], [24, 27.6], [20.6, 28.6]], sh, 1, true);
+  else if (kind === 'chops') { c.poly([[14.8, 19], [16.6, 21], [17.4, 28], [16, 30], [14.6, 25]], sh, 1, true); c.poly([[33.2, 19], [31.4, 21], [30.6, 28], [32, 30], [33.4, 25]], sh, 1, true); }
+}
+function drawGlasses(c, kind) {
+  if (kind === 'round') { for (const cx of [19.8, 28.2]) { c.ell(cx, 19.4, 3.1, 2.7, [255, 255, 255], 0.1); c.curve(circ(cx, 19.4, 3.1, 16), 0.34, '#1a1620', 0.95); } c.line(22.9, 19, 25.1, 19, 0.3, '#1a1620'); c.line(16.7, 19.2, 14.2, 18.8, 0.26, '#1a1620'); c.line(31.3, 19.2, 33.8, 18.8, 0.26, '#1a1620'); }
+  else if (kind === 'shades') { for (const cx of [19.8, 28.2]) { c.poly([[cx - 3.5, 17.6], [cx + 3.5, 17.6], [cx + 3.1, 21.4], [cx, 22.4], [cx - 3.1, 21.4]], (x, y) => mix([14, 14, 24], [58, 60, 84], clamp((y - 17.6) / 4 + (cx - x) * 0.05, 0, 1))); c.line(cx - 2.6, 18.6, cx - 0.8, 18.2, 0.35, [255, 255, 255], 0.6); } c.line(23.3, 18.4, 24.7, 18.4, 0.4, '#14141c'); c.line(16.4, 18.4, 14.2, 18.2, 0.3, '#14141c'); c.line(31.6, 18.4, 33.8, 18.2, 0.3, '#14141c'); }
+}
 function astro(c, L, o, ex) {
   ex = ex || {};
   const suit = hx(L.suit), trim = hx(L.trim), cap = hx(L.cap || '#e9ecf8'), glass = hx(L.glass || '#8fe3ff'), shell = ex.shell ? hx(ex.shell) : [226, 230, 244];
@@ -224,9 +264,12 @@ function astro(c, L, o, ex) {
   if (ex.body) ex.body(c, suit, trim);
   // inside of the helmet, then the face
   c.ell(24, 20.6, 17.4, 17.6, (x, y) => mix([40, 44, 78], [8, 10, 24], clamp((y - 6) / 30, 0, 1)));
-  face(c, Object.assign({}, o, ex.face || {}));
-  c.poly(spline([[14.1, 16], [15, 10.4], [19.4, 7.4], [24, 6.8], [28.6, 7.4], [33, 10.4], [33.9, 16], [31.6, 12.8], [27.6, 11.2], [24, 10.8], [20.4, 11.2], [16.4, 12.8]], true), (x, y) => mix(lt(cap, 0.15), dk(cap, 0.7), clamp((x - 14) / 22 + (y - 7) / 10, 0, 1)));
-  c.ell(14.3, 21.4, 1.7, 2.6, cap); c.ell(33.7, 21.4, 1.7, 2.6, dk(cap, 0.8));
+  const hcol = HAIR_COLS[o.hairCol || 0] || '#3a2a1e', nat = [0, 1, 2, 3, 4, 9].indexOf(o.hairCol || 0) >= 0, bcol = nat ? hcol : '#2a1a12';
+  face(c, Object.assign({}, o, { brow: o.hairStyle ? bcol : o.brow, stubble: o.beard === 'stubble' || (ex.face && ex.face.stubble) }, ex.face && { wide: ex.face.wide, frown: ex.face.frown, tilt: ex.face.tilt, side: ex.face.side }));
+  if (o.hairStyle && o.hairStyle !== 'cap') drawBeard(c, o.beard, bcol);
+  if (o.hairStyle && o.hairStyle !== 'cap') { drawHair(c, o.hairStyle, hcol); } else c.poly(spline([[14.1, 16], [15, 10.4], [19.4, 7.4], [24, 6.8], [28.6, 7.4], [33, 10.4], [33.9, 16], [31.6, 12.8], [27.6, 11.2], [24, 10.8], [20.4, 11.2], [16.4, 12.8]], true), (x, y) => mix(lt(cap, 0.15), dk(cap, 0.7), clamp((x - 14) / 22 + (y - 7) / 10, 0, 1)));
+  if (!o.hairStyle || o.hairStyle === 'cap') { c.ell(14.3, 21.4, 1.7, 2.6, cap); c.ell(33.7, 21.4, 1.7, 2.6, dk(cap, 0.8)); drawBeard(c, o.beard, bcol); }
+  if (o.glasses && o.glasses !== 'none' && !ex.ownGlasses) drawGlasses(c, o.glasses);
   if (ex.inside) ex.inside(c);
   // the glass: a tint, a bright streak and a soft glow, then the rim
   c.ell(24, 20.6, 15.3, 15.5, glass, ex.tint || 0.12);
@@ -242,7 +285,7 @@ function astro(c, L, o, ex) {
 }
 const DRAW = {
   ranger(c, L, o) {
-    astro(c, L, o, { tint: 0.2, body(c, suit, trim) { c.line(11.6, 36.4, 30, 48, 1.7, '#2e2418', 0.9); c.rect(22.8, 41.6, 2.4, 2, '#c9b458'); },
+    astro(c, L, o, { tint: 0.2, inside(c) { c.curve([[14.2, 14.6], [19, 12.4], [24, 11.8], [29, 12.4], [33.8, 14.6]], 1.4, '#c8383f', 0.95); c.line(33.6, 14.8, 36.6, 17.6, 0.9, '#c8383f', 0.95); }, body(c, suit, trim) { c.line(11.6, 36.4, 30, 48, 1.7, '#2e2418', 0.9); c.rect(22.8, 41.6, 2.4, 2, '#c9b458'); },
       post(c) { c.line(36.4, 12, 40.4, 5.4, 0.4, '#c9d2ff'); c.ell(40.6, 5.2, 0.9, 0.9, '#ff5d7a'); c.ell(10.4, 38, 2.1, 1.3, '#ffd98a'); } });
   },
   pilot(c, L, o) {
@@ -250,7 +293,7 @@ const DRAW = {
       post(c) { c.curve([[14.8, 23.4], [15.4, 28.6], [18.6, 31], [21.8, 30.6]], 0.5, '#15151f'); c.ell(22.2, 30.6, 1, 0.8, '#ff4fd8'); c.ell(14.2, 23.2, 1.1, 1.1, '#15151f'); c.rect(21, 34.4, 6, 1, '#ffffff', 0.5); } });
   },
   engineer(c, L, o) {
-    astro(c, L, o, { face: { stubble: true, brow: L.hair },
+    astro(c, L, o, { inside(c) { c.curve([[14.4, 13.4], [24, 11.4], [33.6, 13.4]], 0.9, '#3a2a1a', 0.95); for (const cx of [20, 28]) { c.ell(cx, 11.4, 3.3, 2.7, '#2a2a34'); c.ell(cx, 11.4, 2.4, 1.9, [150, 225, 240], 0.9); c.line(cx - 1.4, 10.6, cx - 0.2, 10.2, 0.3, [255, 255, 255], 0.8); } c.rect(10.4, 44.6, 1, 1, '#c9ccd6', 0); },
       body(c) { c.line(12, 35.4, 34, 47.6, 1.4, '#3a2a1a', 0.9); c.rect(14.6, 44.2, 3, 3.4, '#8a8e9a'); c.rect(15.4, 42.6, 1.4, 2, '#c9ccd6'); },
       post(c) { c.poly([[20.8, 5.6], [27.2, 5.6], [26, 3.4], [22, 3.4]], '#2a2a34'); c.ell(24, 4.5, 1.9, 0.9, '#fff3b0'); c.soft(24, 4, 6, 3.4, [255, 243, 176], 0.4); } });
   },
@@ -260,9 +303,9 @@ const DRAW = {
       post(c) { c.line(35.4, 8, 38.4, 2, 0.4, '#c9d2ff'); c.ell(38.6, 1.8, 0.9, 0.9, '#ff4fd8'); } });
   },
   commander(c, L, o) {
-    astro(c, L, o, { tint: 0.2, face: { brow: '#8a8a96' },
+    astro(c, L, o, { tint: 0.2,
       body(c, suit, trim) { for (const y of [41.2, 43.2, 45.2]) c.rect(9.4, y, 4.6, 0.9, trim); c.poly([[30.4, 43], [34.4, 43], [34.4, 45.6], [30.4, 45.6]], '#c8383f', 1, false); c.ell(32.4, 44.3, 1, 1, '#ffffff', 0.9); },
-      inside(c) { c.poly([[20.2, 26.6], [22.8, 25.8], [24, 26.2], [25.2, 25.8], [27.8, 26.6], [26.2, 27.8], [24, 27.4], [21.8, 27.8]], '#a8a8b4', 1, true); },
+      inside(c) { c.curve([[14.4, 15.6], [19, 12.6], [24, 11.6], [29, 12.6], [33.6, 15.6]], 0.9, '#e8b82e', 0.95); c.rect(21.4, 8.4, 5.2, 1.2, '#e8b82e'); c.ell(24, 8.9, 0.7, 0.7, '#c8383f'); },
       post(c) { c.ell(10.2, 38.6, 3, 1.5, hx('#e8b82e')); c.ell(37.8, 38.6, 3, 1.5, hx('#e8b82e')); } });
   },
   observer(c, L, o) {
@@ -270,14 +313,14 @@ const DRAW = {
       post(c) { c.line(36.2, 18.4, 38.4, 18.4, 0.7, '#2a2c3c'); c.poly([[38.2, 16.2], [44.4, 15.2], [44.6, 21.6], [38.4, 20.8]], '#2a2c3c', 1, false); c.ell(44.8, 18.4, 1.3, 3.2, '#4de3ff', 0.9); c.line(39, 17, 43.6, 16.6, 0.3, '#ffffff', 0.45); } });
   },
   trooper(c, L, o) {
-    astro(c, L, o, { tint: 0.18, face: { wide: true, frown: true, tilt: 0.55, stubble: true },
+    astro(c, L, o, { tint: 0.18, face: { wide: true, frown: true, tilt: 0.55 },
       body(c, suit, trim) { c.ell(8.6, 40.4, 6.4, 4, dk(suit, 0.78)); c.ell(39.4, 40.4, 6.4, 4, dk(suit, 0.66)); c.line(4.4, 40.2, 12.4, 40.2, 0.6, trim, 0.9); c.line(35.6, 40.2, 43.4, 40.2, 0.6, trim, 0.9); },
       inside(c) { c.curve([[30.2, 14.6], [31, 17.6], [30.4, 21]], 0.36, '#8a4a4a', 0.9); c.line(29.2, 17, 32.2, 18.2, 0.2, '#d8b8b0', 0.8); } });
   },
   scientist(c, L, o) {
     astro(c, L, o, {
       body(c, suit, trim) { c.rect(26.2, 42.8, 1.8, 4.6, [77, 227, 255], 0.9); c.rect(26.2, 42.4, 1.8, 0.8, '#ffffff'); c.rect(23, 42.8, 1.8, 4.6, [255, 79, 216], 0.8); },
-      inside(c) { for (const cx of [19.8, 28.2]) { c.ell(cx, 19.4, 3.1, 2.7, [255, 255, 255], 0.1); c.curve(circ(cx, 19.4, 3.1, 16), 0.34, '#1a1620', 0.95); } c.line(22.9, 19, 25.1, 19, 0.3, '#1a1620'); c.line(16.7, 19.2, 14.2, 18.8, 0.26, '#1a1620'); c.line(31.3, 19.2, 33.8, 18.8, 0.26, '#1a1620'); } });
+      post(c) { c.ell(24, 47, 1, 1, '#ffffff', 0); } });
   },
 };
 // the Admiral: the flagship. A gold-trimmed white suit, gold glass, silver brows and a captain's patch
@@ -293,6 +336,9 @@ function admiral(c) {
 function accessory(c, acc, col) {
   if (acc === 'plaster') { c.poly([[26.6, 22.6], [32, 20.6], [33.2, 23], [27.8, 25.2]], '#ecc89c', 1, true); c.soft(30, 23, 3, 1.4, [0, 0, 0], 0.14); c.poly([[29, 21.4], [30.6, 21], [31.2, 24], [29.6, 24.4]], '#f6dcb8', 0.9); c.ell(29.8, 22.7, 0.25, 0.25, '#c89a68'); c.ell(30.4, 23.1, 0.25, 0.25, '#c89a68'); }
   else if (acc === 'beacon') { const cc = typeof col === 'string' ? col : '#ffd98a'; c.line(33, 7, 35.6, 2.6, 0.4, '#c9d2ff'); c.ell(35.8, 2.4, 1.1, 1.1, cc); c.soft(35.8, 2.4, 3.4, 3.4, hx(cc), 0.35); }
+  else if (acc === 'eyepatch') { c.curve([[14.2, 15.6], [19.4, 17], [24.2, 14.6], [33.8, 14.2]], 0.4, '#15151f', 0.95); c.poly(spline([[16.8, 19.4], [19.8, 16.8], [22.8, 19.4], [19.8, 22.2]], true), '#15151f', 1, false); c.line(18.2, 18.4, 19.4, 17.8, 0.3, [255, 255, 255], 0.3); }
+  else if (acc === 'freckles') { for (const p of [[17.4, 24.4], [19, 25.6], [20.6, 24.6], [27.4, 24.6], [29, 25.6], [30.6, 24.4], [22.2, 23.2], [25.8, 23.2]]) c.ell(p[0], p[1], 0.3, 0.3, '#9a5a30', 0.75); }
+  else if (acc === 'facepaint') { const cc = typeof col === 'string' ? col : '#ff4fd8'; c.line(16.4, 22.8, 21.6, 24.6, 0.9, cc, 0.9); c.line(31.6, 22.8, 26.4, 24.6, 0.9, cc, 0.9); c.line(16.8, 24.4, 20.8, 25.8, 0.5, cc, 0.7); c.line(31.2, 24.4, 27.2, 25.8, 0.5, cc, 0.7); }
   else if (acc === 'patch') { const cc = typeof col === 'string' ? col : '#4de3ff'; c.poly([[9.6, 43], [14.2, 43], [14.2, 47.4], [9.6, 47.4]], cc, 1, false); c.ell(11.9, 45.2, 1.1, 1.1, '#05060f', 0.8); c.line(9.6, 43, 14.2, 47.4, 0.2, '#ffffff', 0.5); }
 }
 
@@ -307,7 +353,7 @@ function bgFor(c, bgIdx, seed) {
 function paint(slot, secret) {
   const t = traitsFor(slot, secret), L = SPECIES[t.species].looks[t.look];
   const c = new Canvas(BGS[t.bg]); bgFor(c, t.bg, t.seed);
-  DRAW[t.species](c, L, { skin: L.skin, eye: (t.look + t.species.length) % 4, brow: '#3a2a1e' });
+  DRAW[t.species](c, L, { skin: L.skin, eye: (t.look + t.species.length) % 4, brow: '#3a2a1e', hairStyle: t.hair, hairCol: t.hairCol, beard: t.beard, glasses: t.glasses });
   accessory(c, t.acc, ACC_COL[t.accColor]);
   return c;
 }

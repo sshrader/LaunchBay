@@ -37,7 +37,7 @@ Needs Node 20 or newer. The server itself uses no packages; only the browser lau
 | `DEVNET_RPC_URL` | Optional private devnet endpoint. Devnet never reads from `RPC_URL`. |
 | `PLATFORM_WALLET` | Receives 5% of each coin's creator fees. If unset, there is no split. |
 | `FOUNDER_WALLET` | The one wallet that may launch the flagship. |
-| `SLOTS` | How many characters exist, 1 to 100. Default 4. |
+| `SLOTS` | How many astronauts exist, 1 to 100. Default 8. If you set this in Railway earlier, it overrides the default. |
 | `PUBLIC_URL` | This service's domain, used in each coin's metadata and logo links. Set it before any mainnet launch: those links are permanent. |
 | `IMAGE_SECRET` | Optional. Decides how each agent looks and is named. If unset, one is created in the data folder. |
 | `BLOCKED_WORDS` | Optional, comma separated. Extra words refused in names, tickers and descriptions. |

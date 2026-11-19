@@ -37,7 +37,7 @@ const cfg = () => ({
   // Devnet unless CLUSTER=mainnet, so a missing setting can never spend real SOL.
   cluster: process.env.CLUSTER === 'mainnet' ? 'mainnet' : 'devnet',
   rpc: (process.env.RPC_URL || '').trim(),
-  total: Math.min(100, Math.max(1, parseInt(process.env.SLOTS, 10) || 4)),
+  total: Math.min(100, Math.max(1, parseInt(process.env.SLOTS, 10) || 8)),
   platformWallet: B58_RE.test((process.env.PLATFORM_WALLET || '').trim()) ? process.env.PLATFORM_WALLET.trim() : '',
   maxBuy: process.env.CLUSTER === 'mainnet' ? 10 : 5,
   // The one wallet that may launch the special flagship agent (not part of the numbered set).
