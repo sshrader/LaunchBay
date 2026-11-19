@@ -564,7 +564,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin') { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' }); return res.end(fs.readFileSync(path.join(__dirname, 'admin.html'))); }
     if (p === '/gridfx.js') return serveStatic(res, path.join(__dirname, p.slice(1)), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/api/health') return send(res, 200, { ok: true });
-    if (p === '/api/founder.png') { if (!cfg().founderWallet) return send(res, 404, { error: 'Not found' }); return send(res, 200, art.founderPng(384), { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' }); }
+    if (p === '/api/founder.png') { return send(res, 200, art.founderPng(384), { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' }); }
     { const m = /^\/api\/preview\/(\d+)\.png$/.exec(p); if (m) { const c = cfg(), n = Number(m[1]); if (n < 1 || n > c.total) return send(res, 404, { error: 'Not found' }); return send(res, 200, art.png(n - 1, imageSecret(), 384), { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' }); } }
     if (p === '/assets/cave.svg' || p === '/assets/moon.svg') return serveStatic(res, path.join(__dirname, p), 'image/svg+xml', { 'Cache-Control': 'public, max-age=86400' });
     if (p === '/launch.js') {

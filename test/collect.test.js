@@ -216,7 +216,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
 
   // the Founder bear: one special bear that only FOUNDER_WALLET can launch
   const f = newWallet();
-  check('the founder bear is hidden until a founder wallet is set', (await fetch(base + '/api/founder.png')).status === 404 && (await (await fetch(base + '/api/bears')).json()).founder === null);
+  check('the flagship is not launchable until a founder wallet is set, but its picture is always served', (await fetch(base + '/api/founder.png')).status === 200 && (await (await fetch(base + '/api/bears')).json()).founder === null);
   process.env.FOUNDER_WALLET = f.address;
   let fs0 = await (await fetch(base + '/api/bears')).json();
   check('the founder bear shows as reserved, without the full wallet', fs0.founder.state === 'reserved' && fs0.founder.short === f.address.slice(0, 4) + '…' + f.address.slice(-4) && !JSON.stringify(fs0).includes(f.address));
