@@ -250,7 +250,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     var cap=sp.querySelector('.cap');cap.style.animation='none';void cap.offsetWidth;cap.style.animation='';
     clearTimeout(startIntro.t); // the intro runs until the visitor presses Proceed
     var tok=++introTok;
-    var faces=[1,2,4,3].map(function(n){var im=new Image();im.src='/api/preview/'+n+'.png';return im});
+    var faces=[1,2,4,3].map(function(n){var im=new Image();im.src='/api/preview/'+n+'.png?v=astro';return im});
     splashCave=GridIntro.create(freshCanvas(),{faces:faces});splashCave.start();begun(true);
   }
   var introTok=0,logT=0;
@@ -270,7 +270,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   /* ---------- the launchpad ---------- */
   var st=null,pubkey=null,pickSlot=null,running=false,steps=[];
   function short(a){return a.slice(0,4)+'…'+a.slice(-4)}
-  function prev(n){return n==='F'?'/api/founder.png':'/api/preview/'+n+'.png'}
+  function prev(n){return n==='F'?'/api/founder.png?v=astro':'/api/preview/'+n+'.png?v=astro'}
   function bearName(n){if(n==='founder'||n==='F')return 'Launch Bay';var a=st&&st.bears&&st.bears.filter(function(b){return b.n===n})[0];return a&&a.agent?a.agent.name:'Agent #'+String(n).padStart(2,'0')}
   function phantom(){var p=window.phantom&&window.phantom.solana;return p&&p.isPhantom?p:(window.solana&&window.solana.isPhantom?window.solana:null)}
   function say(t,cls){var m=$('msg');m.textContent=t||'';m.className='msg'+(cls?' '+cls:'')}
@@ -291,7 +291,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
         el.href='/coin/'+b.mint;el.title='Open the page for '+(b.name||b.symbol);
       }
       el.className='bear '+b.state+''+(pickSlot===b.n?' sel':'');
-      var im=document.createElement('img');im.src='/api/preview/'+b.n+'.png';im.alt=(b.agent?b.agent.name+', '+b.agent.role.toLowerCase():'Astronaut '+b.n)+(b.state==='launched'&&b.name?', claimed by '+b.name:'');im.loading='lazy';el.appendChild(im);
+      var im=document.createElement('img');im.src='/api/preview/'+b.n+'.png?v=astro';im.alt=(b.agent?b.agent.name+', '+b.agent.role.toLowerCase():'Astronaut '+b.n)+(b.state==='launched'&&b.name?', claimed by '+b.name:'');im.loading='lazy';el.appendChild(im);
       var t=document.createElement('b');t.textContent=b.state==='launched'&&b.name?b.name:(b.agent?b.agent.name:'#'+String(b.n).padStart(2,'0'));el.appendChild(t);
       var sm=document.createElement('small');
       if(b.state==='launched')sm.textContent='$'+b.symbol+' · '+(b.agent?b.agent.name:'#'+String(b.n).padStart(2,'0'));
@@ -335,7 +335,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     if(!st){box.hidden=true;return}
     if(!f)f={state:'display',short:''};
     box.hidden=false;box.textContent='';
-    var im=document.createElement('img');im.src='/api/founder.png';im.alt='Launch Bay, the flagship: the Admiral: a gold-trimmed white suit with a gold visor and silver brows';box.appendChild(im);
+    var im=document.createElement('img');im.src='/api/founder.png?v=astro';im.alt='Launch Bay, the flagship: the Admiral: a gold-trimmed white suit with a gold visor and silver brows';box.appendChild(im);
     var d=document.createElement('div'),tg=document.createElement('div'),h=document.createElement('h3'),p=document.createElement('p');
     tg.className='tag';tg.textContent='Flagship · one of one';d.appendChild(tg);
     if(f.state==='launched'){
@@ -545,7 +545,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       try{if(gm&&!gm.closed){try{gm.opener=null}catch(e7){}gm.location.href=target;opened=true}}catch(e5){}
       if(after!=='none'&&!opened){var gn=document.createElement('div');gn.style.cssText='margin-top:6px;font-size:13px;opacity:.8';gn.textContent='Your browser blocked the new tab (pop-ups). Use the Open coin menu above, and allow pop-ups for this site to have it open by itself next time.';box.appendChild(gn)}
       gm=null;
-      try{if(window.Ships&&!window.caveReduce){var lf=$('lift'),fsrc=(pickSlot==='F'||pickSlot==='founder')?'/api/founder.png':'/api/preview/'+pickSlot+'.png',shp=window.Ships.list.filter(function(x){return x.id===ship})[0],lh;
+      try{if(window.Ships&&!window.caveReduce){var lf=$('lift'),fsrc=(pickSlot==='F'||pickSlot==='founder')?'/api/founder.png?v=astro':'/api/preview/'+pickSlot+'.png?v=astro',shp=window.Ships.list.filter(function(x){return x.id===ship})[0],lh;
         var closeLift=function(){if(lh)lh.stop();lf.hidden=true};
         lf.hidden=false;lh=window.Ships.liftoff($('liftcv'),ship,fsrc,bearName(rs.json.slot)+' launches $'+sym+' in the '+(shp?shp.name:'ship'),closeLift);$('liftx').onclick=closeLift}}catch(e8){}
       box.classList.add('on');pickSlot=null;showPick();refresh();

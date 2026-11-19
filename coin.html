@@ -151,7 +151,7 @@ td .mini>div{height:100%;background:var(--gold)}
     document.title=j.name+' ($'+j.symbol+') · Launch Bay';
     if(j.quote){var fn=document.getElementById('finenote');if(fn)fn.textContent+=' This coin is priced in another coin ('+j.quote.slice(0,4)+'…'+j.quote.slice(-4)+'), not SOL, so the SOL figures above do not apply to it.'}
     var n=$('net');n.textContent=main?'mainnet':'devnet · test';n.className='net'+(main?' main':'');
-    $('pic').src=j.bear==='F'?'/api/founder.png':'/api/preview/'+j.bear+'.png';$('pic').alt=j.name;
+    $('pic').src=j.bear==='F'?'/api/founder.png?v=astro':'/api/preview/'+j.bear+'.png?v=astro';$('pic').alt=j.name;
     $('name').textContent=j.name;$('tick').textContent='$'+j.symbol;
     var chips=$('chips');chips.textContent='';
     chips.appendChild(el('span','chip'+(j.founder?' good':''),j.founder?'Launch Bay · flagship, one of one':((j.agent?j.agent.name+' · '+j.agent.role.toLowerCase():'Agent #'+String(j.bear).padStart(2,'0'))+' · '+String(j.bear).padStart(2,'0')+' of '+j.total)));
