@@ -61,8 +61,6 @@ a.bear.launched{cursor:pointer}
 a.bear.launched:hover,a.bear.launched:focus-visible{border-color:var(--gold)}
 .bear small{font:400 13px var(--mono);color:#cdc3e8;overflow-wrap:anywhere;padding:0 12px}
 .bear.launched small{color:var(--gold)}
-.bear.crew{border-bottom-color:#4de3ff}.bear.syndicate{border-bottom-color:#ff4fd8}
-.board{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}.board .side{display:grid;gap:2px}.board .side.r{text-align:right}.board .side b{font:800 clamp(22px,5vw,34px) var(--display)}.board .side span{font:500 13px var(--mono);color:var(--dim)}.board .vs{font:700 14px var(--mono);color:var(--dim)}.board .bar{grid-column:1/-1;display:flex;height:12px;border-radius:99px;overflow:hidden;background:#05060f}.board .bar i{display:block;transition:width .6s}
 .bear.open:hover{border-color:var(--gold)}
 .bear.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(157,123,255,.25)}
 .bear.held{cursor:default}
@@ -124,7 +122,7 @@ h1 span{background:linear-gradient(90deg,#4de3ff 0%,#9d7bff 55%,#ff4fd8 100%);-w
 h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shadow:0 0 18px rgba(157,123,255,.3)}
 .btn.go,.openmenu summary,#splash .cap button{background:linear-gradient(90deg,#4de3ff,#9d7bff);color:#05060f;border:0;box-shadow:0 0 20px rgba(120,140,255,.4)}
 .btn,.wallet,.openmenu summary{border-radius:10px}
-.panel,.founder,.board,.result,.recent a{border-radius:14px}
+.panel,.founder,.result,.recent a{border-radius:14px}
 .founder{border:1px solid transparent;border-radius:16px;background:linear-gradient(135deg,rgba(14,18,48,.95),rgba(8,10,30,.95)) padding-box,linear-gradient(135deg,#4de3ff,#9d7bff,#ff4fd8) border-box;box-shadow:0 0 40px rgba(120,100,255,.2)}
 .founder .tag{color:var(--sun)}
 .bear{border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
@@ -138,6 +136,15 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 #splash .cap h2{transform:none;border:0;padding:0;font-size:clamp(34px,6vw,56px);text-shadow:0 0 28px rgba(157,123,255,.7)}
 #splash .cap p{color:#dfe6ff}
 #splash .slog{border-color:rgba(77,227,255,.4);background:rgba(5,6,18,.82)}
+.ships{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-top:6px}
+.ship{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:6px 6px 10px;text-align:center;cursor:pointer;color:var(--fg);font:inherit;appearance:none}
+.ship canvas{display:block;width:100%;height:96px}
+.ship b{display:block;font:600 14px var(--display);margin-top:2px}
+.ship:hover{border-color:var(--gold)}
+.ship.sel{border-color:var(--good);box-shadow:0 0 0 2px rgba(77,227,255,.28),0 0 22px rgba(77,227,255,.18)}
+#lift{position:fixed;inset:0;z-index:60;background:#03040c}
+#lift canvas{display:block;width:100%;height:100%}
+#lift button{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:max(16px,env(safe-area-inset-top,0px))}
 @keyframes rise{0%{opacity:0;transform:translateY(10px)}35%{opacity:0}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash{display:none}#splash .cap{animation:none}}
 </style>
@@ -151,7 +158,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   <div class="slog" id="slog" aria-hidden="true"></div>
   <div class="cap">
     <h2>Launch Bay</h2>
-    <p>Countdown started. Pick your pilot.</p>
+    <p>Countdown started. Pick your astronaut.</p>
     <button id="enter" type="button">Proceed ›</button>
   </div>
 </div>
@@ -168,7 +175,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 
 <div class="mission">ALL SYSTEMS GO</div>
 <h1>Ready on the pad. <span>Launch a coin.</span></h1>
-<p class="lede">Every coin launched here claims one of eight pilots as its logo (a robber, a driver, a safecracker, a hacker, a boss, a lookout, a muscle man or an accountant), and it stays with that coin for good. Each one reports the coin’s public numbers, read from the chain.</p>
+<p class="lede">Every coin launched here claims one of eight astronauts as its logo (a ranger, a astronaut, an engineer, a navigator, a commander, an observer, a trooper or a scientist), and it stays with that coin for good. Pick your astronaut, pick your spaceship, and launch. Each one reports the coin’s public numbers, read from the chain.</p>
 
 <div class="radio" aria-hidden="true"><span><b>MISSION CONTROL</b> &nbsp;▶ T-minus 10, all stations go &nbsp;·&nbsp; <b>NAV</b> Course set for the Milky Way &nbsp;·&nbsp; <b>SOLAR</b> Flare activity low, launch window open &nbsp;·&nbsp; <b>TIP</b> Every coin gets a flight log &nbsp;·&nbsp; <b>WEATHER</b> Clear skies, no nebula in sight</span></div>
 
@@ -176,11 +183,9 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 
 <div id="recent" hidden><h2>Recent launches</h2><div class="recent" id="recentlist"></div></div>
 
-<h2>Star Crew vs Void Syndicate</h2>
-<div class="board" id="board"></div>
 <h2>On the pad</h2>
 <div class="bears" id="bears"></div>
-<div class="row" style="margin-top:12px"><button class="btn" id="rand" type="button">Random pilot</button><span class="facts" id="count"></span></div>
+<div class="row" style="margin-top:12px"><button class="btn" id="rand" type="button">Random astronaut</button><span class="facts" id="count"></span></div>
 
 <h2>Launch</h2>
 <div class="panel">
@@ -196,8 +201,9 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   <div id="pairwrap" hidden><label for="pair">Pair with <span class="rv">optional, mainnet</span></label><select id="pair"><option value="SOL">SOL (standard)</option></select><div class="note" id="pairnote"></div></div>
   <div class="two">
     <div><label for="buy">Your first buy in SOL <span class="rv" id="buyhint">0 to 5</span></label><input type="text" id="buy" value="0.1" inputmode="decimal"></div>
-    <div><label>Logo</label><div class="note" id="pick">A random pilot is picked when you launch.</div><div id="customlogo" hidden style="margin-top:10px"><label for="logofile">Custom logo <span class="rv">founder only, optional</span></label><input type="file" id="logofile" accept="image/png,image/jpeg,image/webp"><div class="note">Leave empty to use the pet’s picture. It is squared to 512 px.</div></div></div>
+    <div><label>Logo</label><div class="note" id="pick">A random astronaut is picked when you launch.</div><div id="customlogo" hidden style="margin-top:10px"><label for="logofile">Custom logo <span class="rv">founder only, optional</span></label><input type="file" id="logofile" accept="image/png,image/jpeg,image/webp"><div class="note">Leave empty to use the pet’s picture. It is squared to 512 px.</div></div></div>
   </div>
+  <div><label id="shiplab">Spaceship <span class="rv">pick your ride</span></label><div class="ships" id="ships" role="radiogroup" aria-labelledby="shiplab"></div><div class="note" id="shipnote"></div></div>
   <div><label for="after">After launch, open</label><select id="after"><option value="coin">The coin page on Launch Bay</option><option value="gmgn">GMGN (mainnet only)</option><option value="none">Nothing, I will pick from the menu</option></select></div>
   <div class="note" id="feenote"></div>
   <div class="row"><button class="btn go" id="go" type="button">Launch</button><button class="btn" id="air" type="button" hidden>Get 1 devnet SOL</button><span class="msg" id="msg"></span></div>
@@ -214,11 +220,13 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 </div>
 
 <p class="fine">Launching creates a real coin on Solana's <span id="fnet">devnet</span>. You sign every transaction in your own wallet and pay its fees; Launch Bay never holds your SOL. Your first buy goes in the same transaction as the launch, so nobody can buy before you. A coin can lose all of its value, and its character has no promised value. Launch Bay does not vouch for any coin launched here. Nothing here is financial advice.</p>
-<footer>Pilots drawn by code. Not affiliated with any game or studio. <button type="button" id="replay">Replay the intro</button></footer>
+<footer>Astronauts drawn by code. Not affiliated with any game or studio. <button type="button" id="replay">Replay the intro</button></footer>
 </div>
 
 <script src="/launch.js"></script>
+<script src="/ships.js"></script>
 <script src="/gridfx.js"></script>
+<div id="lift" hidden aria-live="polite"><canvas id="liftcv" aria-label="Your spaceship lifting off"></canvas><button class="btn" id="liftx" type="button">Skip</button></div>
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
@@ -282,8 +290,8 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       if(el.tagName==='A'){
         el.href='/coin/'+b.mint;el.title='Open the page for '+(b.name||b.symbol);
       }
-      el.className='bear '+b.state+(b.agent&&b.agent.team?' '+b.agent.team.toLowerCase():'')+(pickSlot===b.n?' sel':'');
-      var im=document.createElement('img');im.src='/api/preview/'+b.n+'.png';im.alt=(b.agent?b.agent.name+', '+b.agent.role.toLowerCase()+' '+b.agent.team.toLowerCase():'Pet '+b.n)+(b.state==='launched'&&b.name?', claimed by '+b.name:'');im.loading='lazy';el.appendChild(im);
+      el.className='bear '+b.state+''+(pickSlot===b.n?' sel':'');
+      var im=document.createElement('img');im.src='/api/preview/'+b.n+'.png';im.alt=(b.agent?b.agent.name+', '+b.agent.role.toLowerCase():'Astronaut '+b.n)+(b.state==='launched'&&b.name?', claimed by '+b.name:'');im.loading='lazy';el.appendChild(im);
       var t=document.createElement('b');t.textContent=b.state==='launched'&&b.name?b.name:(b.agent?b.agent.name:'#'+String(b.n).padStart(2,'0'));el.appendChild(t);
       var sm=document.createElement('small');
       if(b.state==='launched')sm.textContent='$'+b.symbol+' · '+(b.agent?b.agent.name:'#'+String(b.n).padStart(2,'0'));
@@ -291,13 +299,13 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       if(b.agent&&b.agent.ability)el.title=b.agent.name+' · '+b.agent.ability.name+': '+b.agent.ability.does+(b.agent.weapon?'':'');
       el.appendChild(sm);g.appendChild(el);
     });
-    $('count').textContent=open+' of '+st.total+' pilots open';
+    $('count').textContent=open+' of '+st.total+' astronauts open';
     $('rand').disabled=!open;
     if(pickSlot&&pickSlot!=='founder'&&!st.bears.some(function(b){return b.n===pickSlot&&b.state==='open'}))pickSlot=null;
   }
   var feeNoteBase='';
   function showPick(){
-    $('pick').textContent=pickSlot==='founder'?'The flagship. One of one.':pickSlot?(bearName(pickSlot)+' is yours if you launch now.'):'A random pilot is picked when you launch.';
+    $('pick').textContent=pickSlot==='founder'?'The flagship. One of one.':pickSlot?(bearName(pickSlot)+' is yours if you launch now.'):'A random astronaut is picked when you launch.';
     $('customlogo').hidden=!(st&&st.founder&&(pickSlot==='founder'||(pubkey&&short(pubkey)===st.founder.short)));
     $('feenote').textContent=pickSlot==='founder'?'Founder launch: all creator fees go to your wallet.':feeNoteBase;
   }
@@ -327,7 +335,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     if(!st){box.hidden=true;return}
     if(!f)f={state:'display',short:''};
     box.hidden=false;box.textContent='';
-    var im=document.createElement('img');im.src='/api/founder.png';im.alt='Launch Bay, the flagship: the Kingpin: slicked black hair with a silver streak, a pinstripe suit and a cigar';box.appendChild(im);
+    var im=document.createElement('img');im.src='/api/founder.png';im.alt='Launch Bay, the flagship: the Admiral: a gold-trimmed white suit with a gold visor and silver brows';box.appendChild(im);
     var d=document.createElement('div'),tg=document.createElement('div'),h=document.createElement('h3'),p=document.createElement('p');
     tg.className='tag';tg.textContent='Flagship · one of one';d.appendChild(tg);
     if(f.state==='launched'){
@@ -335,7 +343,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(f.mint||'')){var a=document.createElement('a');a.className='btn go';a.href='/coin/'+f.mint;a.textContent='Open the coin page';d.appendChild(a)}
     }else{
       h.textContent='Launch Bay';
-      p.textContent=f.state==='held'?'The flagship coin is being launched right now.':'The Kingpin: slicked black hair with a silver streak, a pinstripe suit and a cigar. Not in the numbered set, and reserved for Launch Bay’s founder wallet'+(f.short?' ('+f.short+')':'')+'.';
+      p.textContent=f.state==='held'?'The flagship coin is being launched right now.':'The Admiral: a gold-trimmed white suit, a gold visor and silver brows. Not in the numbered set, and reserved for Launch Bay’s founder wallet'+(f.short?' ('+f.short+')':'')+'.';
       d.appendChild(h);d.appendChild(p);
       if(f.agent&&f.agent.ability){var pa=document.createElement('p');pa.style.cssText='margin:6px 0 0;font-size:14px;color:var(--dim)';var pb=document.createElement('b');pb.style.color='var(--gold)';pb.textContent='Special ability: '+f.agent.ability.name+'. ';pa.appendChild(pb);pa.appendChild(document.createTextNode(f.agent.ability.does));d.appendChild(pa)}
       if(f.state==='reserved'&&pubkey&&short(pubkey)===f.short){var b=document.createElement('button');b.type='button';b.className='btn go';b.textContent=pickSlot==='founder'?'Flagship selected':'Launch the flagship coin';
@@ -367,13 +375,18 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       else $('feenote').textContent='Creator fees from trading all go to your wallet.';
       feeNoteBase=$('feenote').textContent;showPick();
       if(!$('logoicon').firstChild)$('logoicon').appendChild(bearIcon(j.silhouette||[],'#ff4fd8'));
-      drawBears();drawFounder();drawRecent(j.recent);drawBoard(j.teams);
+      drawBears();drawFounder();drawRecent(j.recent);
     }).catch(function(){$('count').textContent='Could not load the line-up. Refresh in a minute.'});
   }
-  function drawBoard(t){var b=$('board');if(!b||!t)return;b.textContent='';
-    function side(k,name,cls){var d=document.createElement('div');d.className='side'+(cls?' '+cls:'');var n=document.createElement('b');n.textContent=name+' '+t[k].launched;var s=document.createElement('span');s.textContent=t[k].launched+' of '+t[k].total+' claimed · '+t[k].open+' open';d.appendChild(n);d.appendChild(s);return d}
-    b.appendChild(side('CREW','Star Crew'));var vs=document.createElement('div');vs.className='vs';vs.textContent='&';b.appendChild(vs);b.appendChild(side('SYNDICATE','Void Syndicate','r'));
-    var tot=t.CREW.launched+t.SYNDICATE.launched,bar=document.createElement('div');bar.className='bar';var a=document.createElement('i'),c=document.createElement('i');a.style.background='#4de3ff';c.style.background='#ff4fd8';var pa=tot?t.CREW.launched/tot*100:50;a.style.width=pa+'%';c.style.width=(100-pa)+'%';bar.appendChild(a);bar.appendChild(c);b.appendChild(bar)}
+
+  var ship='nova';
+  (function(){var box=$('ships');if(!box||!window.Ships)return;
+    function mark(){var kids=box.children;for(var i=0;i<kids.length;i++){var on=kids[i].getAttribute('data-id')===ship;kids[i].classList.toggle('sel',on);kids[i].setAttribute('aria-checked',on?'true':'false')}
+      var cur=window.Ships.list.filter(function(x){return x.id===ship})[0];$('shipnote').textContent=cur?cur.name+': '+cur.tag:''}
+    window.Ships.list.forEach(function(sp){var b=document.createElement('button');b.type='button';b.className='ship';b.setAttribute('role','radio');b.setAttribute('data-id',sp.id);
+      var cv=document.createElement('canvas');b.appendChild(cv);var n=document.createElement('b');n.textContent=sp.name;b.appendChild(n);
+      b.addEventListener('click',function(){ship=sp.id;mark()});box.appendChild(b);window.Ships.thumb(cv,sp.id)});
+    mark()})();
   refresh();setInterval(function(){if(!running)refresh()},20000);
 
   function connect(){
@@ -382,7 +395,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     return p.connect().then(function(r){pubkey=r.publicKey.toString();$('wlabel').textContent=short(pubkey);$('wbtn').classList.add('on');drawFounder();showPick()}).catch(function(){say('The connection request was declined.','err')});
   }
   $('wbtn').addEventListener('click',connect);
-  $('rand').addEventListener('click',function(){pickSlot=null;drawBears();showPick();say('Launch Bay will pick a random open pilot when you launch.','ok')});
+  $('rand').addEventListener('click',function(){pickSlot=null;drawBears();showPick();say('Launch Bay will pick a random open astronaut when you launch.','ok')});
 
   function drawLog(){
     var l=$('log');l.textContent='';
@@ -505,7 +518,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
         onTable:function(t){return fetch('/api/lut',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({table:t})}).catch(function(){})}},step);
       var s3=step('Lock the agent');
       var ln=null;
-      for(var tries=0;tries<3;tries++){ln=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||'',quoteMint:pairValue()==='SOL'?'':pairValue()},token);if(ln.ok||ln.status===409)break;await new Promise(function(ok){setTimeout(ok,2500)})}
+      for(var tries=0;tries<3;tries++){ln=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||'',ship:ship,quoteMint:pairValue()==='SOL'?'':pairValue()},token);if(ln.ok||ln.status===409)break;await new Promise(function(ok){setTimeout(ok,2500)})}
       var lockFailed=!(ln&&ln.ok);
       if(!lockFailed)s3('ok',bearName(pickSlot)+' is now locked to $'+sym);else s3('warn',(ln&&ln.json.error)||'Could not confirm. Your coin exists on-chain.');
       var box=$('result');box.textContent='';
@@ -524,7 +537,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       n.textContent=parts.join(' ');box.appendChild(n);
       if(lockFailed){
         var rl=document.createElement('button');rl.type='button';rl.className='btn';rl.style.cssText='margin-top:10px';rl.textContent='Try locking the agent again';
-        rl.onclick=async function(){rl.disabled=true;var s4=step('Lock the agent');var rr=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||''},token);
+        rl.onclick=async function(){rl.disabled=true;var s4=step('Lock the agent');var rr=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||'',ship:ship},token);
           if(rr.ok){s4('ok','locked');rl.remove();refresh()}else{s4('warn',rr.json.error||'Still could not confirm. Your coin is live; Launch Bay owner can attach it to its agent.');rl.disabled=false}};
         box.appendChild(rl);
       }
@@ -532,6 +545,9 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
       try{if(gm&&!gm.closed){try{gm.opener=null}catch(e7){}gm.location.href=target;opened=true}}catch(e5){}
       if(after!=='none'&&!opened){var gn=document.createElement('div');gn.style.cssText='margin-top:6px;font-size:13px;opacity:.8';gn.textContent='Your browser blocked the new tab (pop-ups). Use the Open coin menu above, and allow pop-ups for this site to have it open by itself next time.';box.appendChild(gn)}
       gm=null;
+      try{if(window.Ships&&!window.caveReduce){var lf=$('lift'),fsrc=(pickSlot==='F'||pickSlot==='founder')?'/api/founder.png':'/api/preview/'+pickSlot+'.png',shp=window.Ships.list.filter(function(x){return x.id===ship})[0],lh;
+        var closeLift=function(){if(lh)lh.stop();lf.hidden=true};
+        lf.hidden=false;lh=window.Ships.liftoff($('liftcv'),ship,fsrc,bearName(rs.json.slot)+' launches $'+sym+' in the '+(shp?shp.name:'ship'),closeLift);$('liftx').onclick=closeLift}}catch(e8){}
       box.classList.add('on');pickSlot=null;showPick();refresh();
     }catch(e){console.error(e)}
     finally{

@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const art = require('./grid');
+const SHIPS = require('./ships.js');
 const chain = require('./chain');
 const { statusReport } = require('./report');
 
@@ -164,7 +165,7 @@ function saveBears(c, d) { const f = bearsFile(c); fs.writeFileSync(f + '.tmp', 
 const holdFor = (d, token) => { for (const k of Object.keys(d.holds)) if (d.holds[k].token === token) return { slot: k === 'F' ? 'F' : Number(k), hold: d.holds[k] }; return null; };
 const bearLabel = (slot) => (slot === 'F' ? 'founder' : slot + 1); // what the pages are told
 const FAVICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#05060f"/><circle cx="32" cy="32" r="12" fill="#9d7bff"/><ellipse cx="32" cy="32" rx="25" ry="7" fill="none" stroke="#4de3ff" stroke-width="3" transform="rotate(-22 32 32)"/><circle cx="50" cy="14" r="2" fill="#fff"/><circle cx="13" cy="50" r="1.5" fill="#fff"/></svg>';
-const PRIME = { name: 'Launch Bay', role: 'FLAGSHIP', blurb: 'The one-of-one flagship. The Kingpin: slicked black hair with a silver streak, a pinstripe suit and a cigar. Reserved for Launch Bay’s founder wallet.', ability: art.ABILITIES.FLAGSHIP };
+const PRIME = { name: 'Launch Bay', role: 'FLAGSHIP', blurb: 'The one-of-one flagship. The Admiral: a gold-trimmed white suit, a gold visor, silver brows and a captain’s patch. Reserved for Launch Bay’s founder wallet.', ability: art.ABILITIES.FLAGSHIP };
 const shortAddr = (a) => a.slice(0, 4) + '…' + a.slice(-4);
 
 // BTC / SOL spot prices for the header ticker (cached 30s, tries several free sources)
@@ -195,14 +196,13 @@ function bearsState(res) {
   for (let i = 0; i < c.total; i++) {
     const L = d.launched[i], H = d.holds[i];
     const ag = art.agentFor(i, imageSecret());
-    bears.push({ n: i + 1, agent: { name: ag.name, role: ag.role, blurb: ag.blurb, ability: ag.ability, team: ag.team, breed: ag.breed }, state: L ? 'launched' : H ? 'held' : 'open', symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null, dev: L ? L.wallet : null, split: L ? !!L.split : false });
+    bears.push({ n: i + 1, agent: { name: ag.name, role: ag.role, blurb: ag.blurb, ability: ag.ability, breed: ag.breed }, state: L ? 'launched' : H ? 'held' : 'open', symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null, dev: L ? L.wallet : null, split: L ? !!L.split : false });
   }
   const recent = Object.keys(d.launched).map((k) => ({ bear: k === 'F' ? 'F' : Number(k) + 1, agent: k === 'F' ? PRIME.name : art.agentFor(Number(k), imageSecret()).name, name: d.launched[k].name, symbol: d.launched[k].symbol, mint: d.launched[k].mint, at: d.launched[k].at }))
     .sort((x, y) => y.at - x.at).slice(0, 8);
   send(res, 200, {
     cluster: c.cluster, pairs: PAIRS_ON, total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
     open: bears.filter((b) => b.state === 'open').length,
-    teams: ['CREW', 'SYNDICATE'].reduce((o, t) => { const m = bears.filter((b) => b.agent.team === t); o[t] = { total: m.length, launched: m.filter((b) => b.state === 'launched').length, open: m.filter((b) => b.state === 'open').length }; return o; }, {}),
     founder: c.founderWallet ? (() => { const L = d.launched.F, H = d.holds.F; return { agent: PRIME, state: L ? 'launched' : H ? 'held' : 'reserved', short: shortAddr(c.founderWallet), symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null }; })() : null,
     platform: c.platformWallet ? { wallet: c.platformWallet, bps: PLATFORM_BPS } : null,
   });
@@ -323,6 +323,8 @@ function validQuote(v) {
   return PAIRS_ON && B58_RE.test(q) && b58decode(q).length === 32 ? q : '';
 }
 
+function validShip(v) { return SHIPS.isShip(text(v, 20)) ? text(v, 20) : 'nova'; }
+
 // Step 3 (after the launch lands): the server checks the transaction on the chain, then locks the bear to the coin.
 async function launched(req, res) {
   const a = authHold(req, res); if (!a) return;
@@ -337,7 +339,7 @@ async function launched(req, res) {
   if (vr.wallet !== a.hold.wallet || !vr.signers.includes(a.hold.wallet)) return send(res, 422, { error: 'That transaction is not a pump.fun launch by your wallet for this coin.' });
   const p = a.hold.pending || {};
   const d = loadBears(a.c); // re-read before writing
-  d.launched[a.slot] = { mint, signature: sig, wallet: a.hold.wallet, name: p.name || '', symbol: p.symbol || '', uri: p.uri || '', at: Date.now(), split: !!text(b.splitSignature, 120), founder: a.slot === 'F', quote: validQuote(b.quoteMint) };
+  d.launched[a.slot] = { mint, signature: sig, wallet: a.hold.wallet, name: p.name || '', symbol: p.symbol || '', uri: p.uri || '', at: Date.now(), split: !!text(b.splitSignature, 120), founder: a.slot === 'F', quote: validQuote(b.quoteMint), ship: validShip(b.ship) };
   delete d.holds[a.slot];
   saveBears(a.c, d);
   send(res, 200, { ok: true, slot: bearLabel(a.slot) });
@@ -386,10 +388,10 @@ async function coinInfo(res, mint) {
   let meta = {};
   const mm = /\/metadata\/([a-f0-9]{16})\.json$/.exec(f.rec.uri || '');
   if (mm) { try { meta = JSON.parse(fs.readFileSync(path.join(META_DIR, mm[1] + '.json'), 'utf8')); } catch (e) { /* no metadata file */ } }
-  const agent = f.slot === 'F' ? { name: PRIME.name, role: PRIME.role, blurb: PRIME.blurb, ability: PRIME.ability } : (({ name, role, blurb, ability, team, breed }) => ({ name, role, blurb, ability, team, breed }))(art.agentFor(f.slot, imageSecret()));
+  const agent = f.slot === 'F' ? { name: PRIME.name, role: PRIME.role, blurb: PRIME.blurb, ability: PRIME.ability } : (({ name, role, blurb, ability, breed }) => ({ name, role, blurb, ability, breed }))(art.agentFor(f.slot, imageSecret()));
   send(res, 200, {
     cluster: c.cluster, mint, bear: f.slot === 'F' ? 'F' : f.slot + 1, founder: !!f.rec.founder, total: c.total, name: f.rec.name, symbol: f.rec.symbol, dev: f.rec.wallet,
-    launchedAt: f.rec.at, signature: f.rec.signature, quote: f.rec.quote || '', feeSplit: !!f.rec.split, platformBps: c.platformWallet ? PLATFORM_BPS : 0,
+    launchedAt: f.rec.at, signature: f.rec.signature, quote: f.rec.quote || '', ship: f.rec.ship || 'nova', feeSplit: !!f.rec.split, platformBps: c.platformWallet ? PLATFORM_BPS : 0,
     description: meta.description || '', twitter: meta.twitter || '', website: meta.website || '', onchain,
     agent, report: statusReport(agent, { launchedAt: f.rec.at, symbol: f.rec.symbol }, onchain, Date.now(), watchLoad(c).d[mint] || null),
   });
@@ -562,6 +564,7 @@ const server = http.createServer(async (req, res) => {
     { const m = /^\/api\/coin\/([1-9A-HJ-NP-Za-km-z]{32,44})$/.exec(p); if (m) return await coinInfo(res, m[1]); }
     if (/^\/coin\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p)) { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff' }); return res.end(fs.readFileSync(COIN_PAGE)); }
     if (p === '/admin') { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' }); return res.end(fs.readFileSync(path.join(__dirname, 'admin.html'))); }
+    if (p === '/ships.js') return serveStatic(res, path.join(__dirname, 'ships.js'), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/gridfx.js') return serveStatic(res, path.join(__dirname, p.slice(1)), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/api/health') return send(res, 200, { ok: true });
     if (p === '/api/founder.png') { return send(res, 200, art.founderPng(384), { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' }); }

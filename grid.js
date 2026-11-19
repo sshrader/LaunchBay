@@ -1,7 +1,6 @@
 'use strict';
-// The crooks for GTA: eight original characters drawn as 48 x 48 pixel mugshots, plus a one-of-one Kingpin for the flagship.
-// Street Crew (robber, driver, safecracker, hacker) and the Syndicate (boss, lookout, muscle, accountant). Even slots are crew and odd
-// slots are syndicate, so the teams stay level. Everything is drawn here with a tiny rasterizer and a PNG encoder: no libraries, no image files.
+// The astronauts for Launch Bay: eight original characters drawn as 48 x 48 portraits behind a helmet visor, plus a one-of-one Admiral for the flagship.
+// Everything is drawn here with a tiny rasterizer and a PNG encoder: no libraries, no image files.
 const crypto = require('crypto');
 const { encodePng } = require('./isorender');
 
@@ -9,69 +8,46 @@ const N = 48;
 const INK = '#141018';
 const SKINS = [['#f0cfae', '#d9a98a'], ['#e8c4a0', '#c99d78'], ['#c99774', '#a87654'], ['#8d5a3a', '#6f4429']];
 
-// ---- looks: each crook has four, and each look has its own skin tone ----
+// ---- looks: each astronaut has four suits, and each look has its own skin tone ----
 const mk = (list) => list.map((l, i) => Object.assign({ skin: i }, l));
+const lk = (n, suit, trim, glass, cap) => ({ n, suit, trim, glass, cap: cap || '#e9ecf8' });
 const SPECIES = {
-  crew: {
-    robber: { name: 'Robber', w: 14, looks: mk([
-      { n: 'Black bandana', mask: '#2b2838', shirt: '#e8e8f0', stripe: '#1a1626', hair: '#3a2a1e' }, { n: 'Red bandana', mask: '#a8263a', shirt: '#e8e8f0', stripe: '#1a1626', hair: '#2a1a12' },
-      { n: 'Navy bandana', mask: '#26356a', shirt: '#f0e8d8', stripe: '#26356a', hair: '#1a1410' }, { n: 'Grey bandana', mask: '#6a6e7a', shirt: '#e8e8f0', stripe: '#8a1f3a', hair: '#141018' }]) },
-    driver: { name: 'Driver', w: 14, looks: mk([
-      { n: 'Orange flat cap', cap: '#ff8a3d', brim: '#c96a1e', jacket: '#3a5a8a', hair: '#4a3020' }, { n: 'Teal flat cap', cap: '#19a89a', brim: '#11786e', jacket: '#5a3a2a', hair: '#2a1a12' },
-      { n: 'Black flat cap', cap: '#26242e', brim: '#141018', jacket: '#8a1f3a', hair: '#1a1410' }, { n: 'White flat cap', cap: '#e8e8f0', brim: '#b8b8c4', jacket: '#2a2a38', hair: '#141018' }]) },
-    safecracker: { name: 'Safecracker', w: 14, looks: mk([
-      { n: 'Teal bowler', beanie: '#19a89a', shirt: '#5a4a3a', hair: '#4a3020' }, { n: 'Grey bowler', beanie: '#6a6e7a', shirt: '#3a4a5a', hair: '#2a1a12' },
-      { n: 'Red bowler', beanie: '#a8263a', shirt: '#4a4a3a', hair: '#1a1410' }, { n: 'Mustard bowler', beanie: '#c9a02a', shirt: '#3a2a3a', hair: '#141018' }]) },
-    hacker: { name: 'Hacker', w: 14, looks: mk([
-      { n: 'Violet trilby', hat: '#2a2050', hood: '#3a2a6a', lens: '#19e3d0', hair: '#4a3020' }, { n: 'Black trilby', hat: '#121018', hood: '#1e1c26', lens: '#ff2d95', hair: '#2a1a12' },
-      { n: 'Green trilby', hat: '#16403a', hood: '#1f5a4a', lens: '#ffd24a', hair: '#1a1410' }, { n: 'Grey trilby', hat: '#3a3e4a', hood: '#555a68', lens: '#19e3d0', hair: '#141018' }]) },
-  },
-  syndicate: {
-    boss: { name: 'Boss', w: 14, looks: mk([
-      { n: 'Charcoal suit', hat: '#141420', suit: '#1c1c2e', tie: '#ff2d95', hair: '#141018' }, { n: 'Navy suit', hat: '#161f3e', suit: '#1f2a52', tie: '#ffd24a', hair: '#2a1a12' },
-      { n: 'Burgundy suit', hat: '#34101e', suit: '#4a1428', tie: '#19e3d0', hair: '#1a1410' }, { n: 'Cream suit', hat: '#b8ae96', suit: '#d8cfb8', tie: '#8a1f3a', hair: '#8a8a8a' }]) },
-    lookout: { name: 'Lookout', w: 14, looks: mk([
-      { n: 'Pink flat cap', band: '#ff2d95', jacket: '#2a5a4a', hair: '#4a3020' }, { n: 'Teal flat cap', band: '#19e3d0', jacket: '#4a2a5a', hair: '#2a1a12' },
-      { n: 'Orange flat cap', band: '#ff8a3d', jacket: '#2a3a5a', hair: '#1a1410' }, { n: 'White flat cap', band: '#e8e8f0', jacket: '#5a2a2a', hair: '#141018' }]) },
-    muscle: { name: 'Muscle', w: 14, looks: mk([
-      { n: 'White shirt', suit: '#1a1a22', tank: '#e8e8f0', hair: '#4a3020' }, { n: 'Mustard shirt', suit: '#2a2a38', tank: '#c9a02a', hair: '#2a1a12' },
-      { n: 'Red shirt', suit: '#1f2a52', tank: '#a8263a', hair: '#1a1410' }, { n: 'Teal shirt', suit: '#4a1428', tank: '#19a89a', hair: '#141018' }]) },
-    accountant: { name: 'Accountant', w: 14, looks: mk([
-      { n: 'Grey vest', shirt: '#f1e8d4', vest: '#6a6a7a', tie: '#19e3d0', hair: '#8a8a8a' }, { n: 'Brown vest', shirt: '#f1e8d4', vest: '#6a4a38', tie: '#ff2d95', hair: '#4a3020' },
-      { n: 'Navy vest', shirt: '#dfe8f4', vest: '#26356a', tie: '#ffd24a', hair: '#2a1a12' }, { n: 'Green vest', shirt: '#f1e8d4', vest: '#2f6a50', tie: '#a8263a', hair: '#1a1410' }]) },
-  },
+  ranger: { name: 'Ranger', w: 14, looks: mk([lk('Olive suit', '#5f6b3c', '#c9b458', '#ff8a7a'), lk('Sand suit', '#b79a62', '#5a4a2a', '#ff9a7a'), lk('Rust suit', '#9a4a2a', '#ffd98a', '#ffb07a'), lk('Charcoal suit', '#3a3e4a', '#ff9a5c', '#ff8a7a')]) },
+  pilot: { name: 'Pilot', w: 14, looks: mk([lk('Orange suit', '#ff7a2e', '#ffffff', '#8fe3ff'), lk('Teal suit', '#1f9a9a', '#ffd98a', '#8fe3ff'), lk('Red suit', '#c8383f', '#ffffff', '#a8e8ff'), lk('White suit', '#e9ecf6', '#ff7a2e', '#8fe3ff')]) },
+  engineer: { name: 'Engineer', w: 14, looks: mk([lk('Yellow suit', '#f2c230', '#2a2a34', '#b9f0ff'), lk('Grey suit', '#7a8094', '#f2c230', '#b9f0ff'), lk('Green suit', '#3f8a5a', '#f2c230', '#c8fff0'), lk('Blue suit', '#3a6ad0', '#f2c230', '#b9f0ff')]) },
+  navigator: { name: 'Navigator', w: 14, looks: mk([lk('Violet suit', '#5b3fd0', '#4de3ff', '#4de3ff'), lk('Teal suit', '#1a8f8f', '#ffffff', '#4de3ff'), lk('Magenta suit', '#b0309a', '#4de3ff', '#6fe8ff'), lk('Midnight suit', '#2a2e4a', '#4de3ff', '#4de3ff')]) },
+  commander: { name: 'Commander', w: 14, looks: mk([lk('White suit', '#e9ecf6', '#e8b82e', '#ffd98a'), lk('Navy suit', '#27335f', '#ffd98a', '#ffd98a'), lk('Burgundy suit', '#6a1e3a', '#e8b82e', '#ffd98a'), lk('Black suit', '#1c1c2e', '#c9d2ff', '#ffe9a8')]) },
+  observer: { name: 'Observer', w: 14, looks: mk([lk('White suit', '#dfe4f2', '#4fb89a', '#9fffd8'), lk('Mint suit', '#4fb89a', '#ffffff', '#9fffd8'), lk('Lilac suit', '#9a86e0', '#ffffff', '#b8ffe8'), lk('Steel suit', '#8a96b4', '#4de3ff', '#9fffd8')]) },
+  trooper: { name: 'Trooper', w: 14, looks: mk([lk('Gunmetal suit', '#4a4e5e', '#ff9a5c', '#ff9a5c'), lk('Black suit', '#22222c', '#ff4fd8', '#ff9a5c'), lk('Green suit', '#3c5a3a', '#c9b458', '#ffb07a'), lk('Crimson suit', '#7a2430', '#e9ecf6', '#ff9a5c')]) },
+  scientist: { name: 'Scientist', w: 14, looks: mk([lk('White suit', '#f2f4fa', '#9d7bff', '#c9b8ff'), lk('Sky suit', '#7fb4e8', '#ffffff', '#d8ccff'), lk('Pink suit', '#e89ac8', '#ffffff', '#d8ccff'), lk('Lime suit', '#9ac84a', '#2a2a34', '#c9b8ff')]) },
 };
-const ACCS = [['none', 30], ['plaster', 22], ['earring', 24], ['cig', 24]];
-const ACC_COL = ['#ffd24a', '#19e3d0', '#ff2d95', '#e8e8f0', '#ff8a3d', '#b08aff', '#ff3b4e'];
-const BGS = { crew: ['#0b1a22', '#0c1c26', '#0a1822', '#0b1b1f'], syndicate: ['#1e0b1c', '#210c20', '#1a0a1e', '#1d0b18'] };
-const NAMES = {
-  crew: ['SHADOW', 'DUKE', 'RICO', 'SLICK', 'VEGAS', 'BLAZE', 'GHOST', 'RAZOR', 'DICE', 'JINX', 'SMOKE', 'VIPER', 'NITRO', 'BANDIT', 'FOXY', 'LUCKY', 'CASH', 'MOJO', 'CLUTCH', 'ROOK', 'HUSTLE', 'BISHOP', 'NOVA', 'DRIFTER', 'SPARKS', 'COBRA', 'TEX', 'JUNO', 'PIXEL', 'ECHO', 'FLINT', 'ZERO'],
-  syndicate: ['DON', 'MARCO', 'VINNY', 'CAPO', 'TONY', 'SAL', 'GINO', 'LUCA', 'BIGAL', 'ENZO', 'MOE', 'FRANKIE', 'CARMINE', 'PAULIE', 'DANTE', 'NICO', 'ROCCO', 'BRUNO', 'MAURO', 'SILAS', 'OTTO', 'VITO', 'LEO', 'HANK', 'ARLO', 'IGOR', 'DMITRI', 'KAI', 'SONNY', 'BENNY', 'RAFA', 'CLEO'],
-};
+const ACCS = [['none', 30], ['plaster', 20], ['beacon', 26], ['patch', 24]];
+const ACC_COL = ['#ffd98a', '#4de3ff', '#ff4fd8', '#e8e8f0', '#ff9a5c', '#9d7bff', '#ff5d7a'];
+const BGS = ['#070b1f', '#0d0a26', '#060f22', '#12091f'];
+const NAMES = ['ORION', 'VEGA', 'LYRA', 'NOVA', 'COMET', 'ASTRA', 'ZENITH', 'PULSAR', 'QUASAR', 'NEBULA', 'HALLEY', 'TITAN', 'EUROPA', 'CALLISTO', 'RIGEL', 'SIRIUS', 'ALTAIR', 'DENEB', 'ATLAS', 'HYDRA', 'DRACO', 'LUNA', 'APOLLO', 'GEMINI', 'ARTEMIS', 'MERCURY', 'VOYAGER', 'KEPLER', 'HUBBLE', 'CASSINI', 'ECLIPSE', 'METEOR', 'AURORA', 'CYGNUS', 'PHOENIX', 'ROVER', 'CELESTE', 'ZEPHYR', 'COSMO', 'STELLA', 'JUPITER', 'SATURN', 'PERSEUS', 'TAURUS', 'ARIES', 'VIRGO', 'ANDROMEDA', 'ORBIT', 'SOLSTICE', 'EQUINOX', 'ASTEROID', 'GALAXY'];
 
 // ---- classes: each is an ability that works from real chain numbers (fn names the report in report.js) ----
 const ROLES = {
-  ROBBER: { team: 'crew', fn: 'HUNTER', blurb: 'Cases the launch block and spots the wallets that rushed in first.' },
-  DRIVER: { team: 'crew', fn: 'COURIER', blurb: 'Keeps the getaway log: the coin’s best days on record.' },
-  SAFECRACKER: { team: 'crew', fn: 'AUDITOR', blurb: 'Won’t touch a coin until the mint and freeze authority are revoked.' },
-  HACKER: { team: 'crew', fn: 'SCOUT', blurb: 'Taps into the chain and counts every wallet holding the coin.' },
-  BOSS: { team: 'syndicate', fn: 'ARCHIVIST', blurb: 'Keeps the books on every milestone the coin hits.' },
-  LOOKOUT: { team: 'syndicate', fn: 'SENTRY', blurb: 'Never takes his eyes off the dev wallet.' },
-  MUSCLE: { team: 'syndicate', fn: 'WARDEN', blurb: 'Works out how hard a big sale would hit the curve.' },
-  ACCOUNTANT: { team: 'syndicate', fn: 'ANALYST', blurb: 'Tracks the market cap against the start and the peak.' },
+  RANGER: { fn: 'HUNTER', blurb: 'Scouts the launch block and spots the wallets that rushed in first.' },
+  PILOT: { fn: 'COURIER', blurb: 'Keeps the flight log: the coin’s best days on record.' },
+  ENGINEER: { fn: 'AUDITOR', blurb: 'Won’t fly a coin until the mint and freeze authority are revoked.' },
+  NAVIGATOR: { fn: 'SCOUT', blurb: 'Plots the chain and counts every wallet holding the coin.' },
+  COMMANDER: { fn: 'ARCHIVIST', blurb: 'Keeps the mission log of every milestone the coin hits.' },
+  OBSERVER: { fn: 'SENTRY', blurb: 'Never takes their eyes off the dev wallet.' },
+  TROOPER: { fn: 'WARDEN', blurb: 'Works out how hard a big sale would hit the curve.' },
+  SCIENTIST: { fn: 'ANALYST', blurb: 'Tracks the market cap against the start and the peak.' },
 };
 const ABILITIES = {
-  HACKER: { name: 'Holder Radar', fn: 'SCOUT', does: 'Tracks how many wallets hold the coin and how that count has changed since it first looked.' },
-  BOSS: { name: 'Milestone Log', fn: 'ARCHIVIST', does: 'Writes down the moment the coin first passes 25%, 50%, 75% and 90% of the curve, and when it graduates.' },
-  ROBBER: { name: 'Launch Block Scan', fn: 'HUNTER', does: 'Finds the wallets that bought in the same block as the launch or the next, and how much of the supply they hold now.' },
-  DRIVER: { name: 'Record Board', fn: 'COURIER', does: 'Keeps the coin’s records: its highest market cap, most holders and furthest curve progress, with when each was seen.' },
-  LOOKOUT: { name: 'Dev Watch', fn: 'SENTRY', does: 'Watches the dev wallet and the top ten holders, and sounds the alarm if the dev’s share drops.' },
-  ACCOUNTANT: { name: 'Cap Tracker', fn: 'ANALYST', does: 'Follows market cap against where it started and where it peaked, and shows how far it is from the high.' },
-  SAFECRACKER: { name: 'Authority Audit', fn: 'AUDITOR', does: 'Reads the token itself and says whether its mint authority and freeze authority are revoked.' },
-  MUSCLE: { name: 'Sell Impact', fn: 'WARDEN', does: 'Uses the curve’s real reserves to work out what would happen if the dev or the biggest holder sold everything right now.' },
-  FLAGSHIP: { name: 'Command Sweep', fn: 'FLAGSHIP', does: 'Runs every other crook’s ability on the coin at once and reports the headline from each.' },
+  NAVIGATOR: { name: 'Holder Radar', fn: 'SCOUT', does: 'Tracks how many wallets hold the coin and how that count has changed since it first looked.' },
+  COMMANDER: { name: 'Milestone Log', fn: 'ARCHIVIST', does: 'Writes down the moment the coin first passes 25%, 50%, 75% and 90% of the curve, and when it graduates.' },
+  RANGER: { name: 'Launch Block Scan', fn: 'HUNTER', does: 'Finds the wallets that bought in the same block as the launch or the next, and how much of the supply they hold now.' },
+  PILOT: { name: 'Record Board', fn: 'COURIER', does: 'Keeps the coin’s records: its highest market cap, most holders and furthest curve progress, with when each was seen.' },
+  OBSERVER: { name: 'Dev Watch', fn: 'SENTRY', does: 'Watches the dev wallet and the top ten holders, and sounds the alarm if the dev’s share drops.' },
+  SCIENTIST: { name: 'Cap Tracker', fn: 'ANALYST', does: 'Follows market cap against where it started and where it peaked, and shows how far it is from the high.' },
+  ENGINEER: { name: 'Authority Audit', fn: 'AUDITOR', does: 'Reads the token itself and says whether its mint authority and freeze authority are revoked.' },
+  TROOPER: { name: 'Sell Impact', fn: 'WARDEN', does: 'Uses the curve’s real reserves to work out what would happen if the dev or the biggest holder sold everything right now.' },
+  FLAGSHIP: { name: 'Command Sweep', fn: 'FLAGSHIP', does: 'Runs every other astronaut’s ability on the coin at once and reports the headline from each.' },
 };
-const TEAM_ROLES = { crew: Object.keys(ROLES).filter((k) => ROLES[k].team === 'crew'), syndicate: Object.keys(ROLES).filter((k) => ROLES[k].team === 'syndicate') };
 
 function prng(seedBytes) {
   let a = seedBytes.readUInt32LE(0) ^ seedBytes.readUInt32LE(4);
@@ -90,18 +66,18 @@ function traitsFor(slot, secret) {
   const ck = String(secret);
   let list = traitCache.get(ck);
   if (!list) { list = { rnd: prng(crypto.createHmac('sha256', ck).update('heist').digest()), items: [], seen: new Set(), names: new Set(), kinds: new Set() }; traitCache.set(ck, list); }
+  const keys = Object.keys(SPECIES);
   while (list.items.length <= slot) {
-    const idx = list.items.length, team = idx % 2 === 0 ? 'crew' : 'syndicate', sp = SPECIES[team], keys = Object.keys(sp);
     let t, key, tries = 0;
     do {
-      const k = pickW(keys.map((x) => [x, sp[x].w]), list.rnd())[0], look = Math.floor(list.rnd() * sp[k].looks.length);
-      t = { team, species: k, look, acc: pickW(ACCS, list.rnd())[0], accColor: Math.floor(list.rnd() * ACC_COL.length), bg: Math.floor(list.rnd() * 4), seed: Math.floor(list.rnd() * 1e9) };
-      key = [k, look, t.acc, t.acc === 'earring' ? t.accColor : 0].join('|');
+      const k = pickW(keys.map((x) => [x, SPECIES[x].w]), list.rnd())[0], look = Math.floor(list.rnd() * SPECIES[k].looks.length);
+      t = { species: k, look, acc: pickW(ACCS, list.rnd())[0], accColor: Math.floor(list.rnd() * ACC_COL.length), bg: Math.floor(list.rnd() * 4), seed: Math.floor(list.rnd() * 1e9) };
+      key = [k, look, t.acc, t.acc === 'none' ? 0 : t.accColor].join('|');
       tries++;
     } while ((list.seen.has(key) || (tries < 120 && list.kinds.has(t.species + t.look) && list.kinds.size < keys.length * 4)) && tries < 200);
     list.seen.add(key); list.kinds.add(t.species + t.look);
     let nm, nt = 0;
-    do { nm = NAMES[team][Math.floor(list.rnd() * NAMES[team].length)]; nt++; } while (list.names.has(nm) && nt < 200);
+    do { nm = NAMES[Math.floor(list.rnd() * NAMES.length)]; nt++; } while (list.names.has(nm) && nt < 200);
     list.names.add(nm);
     t.name = nm; t.role = t.species.toUpperCase();
     list.items.push(t);
@@ -109,8 +85,8 @@ function traitsFor(slot, secret) {
   return list.items[slot];
 }
 function agentFor(slot, secret) {
-  const t = traitsFor(slot, secret), sp = SPECIES[t.team][t.species];
-  return { name: t.name, role: t.role, team: t.team === 'crew' ? 'CREW' : 'SYNDICATE', blurb: ROLES[t.role].blurb, ability: ABILITIES[t.role], chassis: sp.looks[t.look].n, breed: sp.name, accessory: t.acc === 'none' ? null : t.acc };
+  const t = traitsFor(slot, secret), sp = SPECIES[t.species];
+  return { name: t.name, role: t.role, blurb: ROLES[t.role].blurb, ability: ABILITIES[t.role], chassis: sp.looks[t.look].n, breed: sp.name, accessory: t.acc === 'none' ? null : t.acc };
 }
 
 // ---- a small vector painter: smooth shapes, soft shadows and gradients, 4 samples per pixel for clean edges ----
@@ -235,151 +211,107 @@ function hairShape(c, pts, col, o) {
 }
 function fabricEdge(c, pts, w, col, a) { c.curve(pts, w, col, a); }
 
-// ---- the eight crooks, then the Kingpin ----
-// ---- gangster gear: hats, collars, pinstripes ----
-function pinstripes(c, pts, base) {
-  const lum = base[0] * 0.3 + base[1] * 0.59 + base[2] * 0.11, col = lum > 150 ? dk(base, 0.7) : lt(base, 0.3), ip = inPoly(pts);
-  c.paint(bbox(pts), ip, (x, y) => (Math.abs(((x * 1.5) % 1) - 0.5) < 0.06 ? [col[0], col[1], col[2], 0.4] : null));
+// ---- the eight astronauts, then the Admiral ----
+const circ = (cx, cy, r, n) => { n = n || 24; const p = []; for (let i = 0; i <= n; i++) { const a = i * Math.PI * 2 / n; p.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return p; };
+function astro(c, L, o, ex) {
+  ex = ex || {};
+  const suit = hx(L.suit), trim = hx(L.trim), cap = hx(L.cap || '#e9ecf8'), glass = hx(L.glass || '#8fe3ff'), shell = ex.shell ? hx(ex.shell) : [226, 230, 244];
+  torso(c, L.suit, { pts: ex.pts });
+  // chest panel, arm bands and a hose
+  c.poly([[18, 41], [30, 41], [29.4, 47.8], [18.6, 47.8]], dk(suit, 0.66), 1, true); c.rect(19.6, 42.4, 2.2, 1.3, trim); c.ell(24.4, 43.1, 0.8, 0.8, '#4de3ff'); c.ell(26.9, 43.1, 0.8, 0.8, '#ff4fd8'); c.rect(19.6, 45.2, 8.2, 0.7, [255, 255, 255], 0.28);
+  c.line(11.6, 40.4, 12.6, 48, 1.5, trim, 0.9); c.line(36.4, 40.4, 35.4, 48, 1.5, trim, 0.9);
+  c.curve([[17, 38], [14, 43], [15.6, 48]], 0.7, dk(suit, 0.5), 0.8);
+  if (ex.body) ex.body(c, suit, trim);
+  // inside of the helmet, then the face
+  c.ell(24, 20.6, 17.4, 17.6, (x, y) => mix([40, 44, 78], [8, 10, 24], clamp((y - 6) / 30, 0, 1)));
+  face(c, Object.assign({}, o, ex.face || {}));
+  c.poly(spline([[14.1, 16], [15, 10.4], [19.4, 7.4], [24, 6.8], [28.6, 7.4], [33, 10.4], [33.9, 16], [31.6, 12.8], [27.6, 11.2], [24, 10.8], [20.4, 11.2], [16.4, 12.8]], true), (x, y) => mix(lt(cap, 0.15), dk(cap, 0.7), clamp((x - 14) / 22 + (y - 7) / 10, 0, 1)));
+  c.ell(14.3, 21.4, 1.7, 2.6, cap); c.ell(33.7, 21.4, 1.7, 2.6, dk(cap, 0.8));
+  if (ex.inside) ex.inside(c);
+  // the glass: a tint, a bright streak and a soft glow, then the rim
+  c.ell(24, 20.6, 15.3, 15.5, glass, ex.tint || 0.12);
+  c.soft(19, 13.4, 5.4, 3, [255, 255, 255], 0.26);
+  c.poly([[15.4, 20], [16.6, 14.4], [19.8, 10.6], [19, 14.6], [17.4, 20.4]], [255, 255, 255], 0.26);
+  c.poly([[31.6, 27], [32.8, 23.6], [33.6, 25]], [255, 255, 255], 0.2);
+  c.curve(circ(24, 20.6, 16.3), 2.5, (x, y) => mix(lt(shell, 0.2), dk(shell, 0.62), clamp((x - 10) / 28 + (y - 6) / 30, 0, 1)));
+  c.curve(circ(24, 20.6, 15), 0.45, [10, 12, 30], 0.55); c.curve(circ(24, 20.6, 17.4), 0.4, [255, 255, 255], 0.3);
+  c.soft(24, 38, 11, 2, [0, 0, 0], 0.28);
+  // neck ring
+  c.ell(24, 37.4, 12.6, 2.9, (x, y) => mix(lt(shell, 0.1), dk(shell, 0.6), clamp((x - 11) / 26, 0, 1))); c.ell(24, 36.9, 10.4, 1.7, dk(shell, 0.5)); c.curve([[12, 37.6], [24, 40.6], [36, 37.6]], 0.5, trim, 0.9);
+  if (ex.post) ex.post(c, suit, trim, glass);
 }
-function fedora(c, col, band) {
-  const b = hx(col);
-  c.poly([[13.8, 13], [14.6, 6.8], [19, 4], [29, 4], [33.4, 6.8], [34.2, 13]], (x, y) => mix(lt(b, 0.14), dk(b, 0.62), clamp((x - 14) / 20 + (y - 4) / 12, 0, 1)), 1, true);
-  c.curve([[22, 4.6], [24, 7], [26, 4.6]], 0.5, dk(b, 0.4), 0.7);
-  c.poly([[13.8, 10.6], [34.2, 10.6], [34.4, 12.8], [13.6, 12.8]], hx(band), 1, false);
-  c.poly([[5.5, 14.4], [14, 12.6], [34, 12.6], [42.5, 14.4], [39.5, 16.8], [24, 17.6], [8.5, 16.8]], (x, y) => mix(lt(b, 0.06), dk(b, 0.6), clamp((x - 6) / 36, 0, 1)), 1, true);
-  c.soft(24, 18, 11, 2, [0, 0, 0], 0.35);
-}
-function newsboy(c, col, peak) {
-  const b = hx(col);
-  c.poly([[13.2, 14.6], [13.6, 9.8], [17.6, 6.8], [25, 6], [32.6, 7.2], [35.2, 10.6], [34.8, 14.6]], (x, y) => mix(lt(b, 0.14), dk(b, 0.62), clamp((x - 13) / 22 + (y - 6) / 14, 0, 1)), 1, true);
-  c.line(24, 6.2, 24, 14.2, 0.25, [0, 0, 0], 0.18); c.line(19, 7, 17.4, 14, 0.2, [0, 0, 0], 0.14); c.line(30, 7, 32, 14, 0.2, [0, 0, 0], 0.14); c.ell(24, 6.2, 0.9, 0.55, dk(b, 0.6));
-  c.poly([[13.4, 14.4], [34.6, 14.4], [36, 16.8], [24, 18.2], [12, 16.8]], hx(peak), 1, true); c.soft(24, 18.2, 10, 1.8, [0, 0, 0], 0.32);
-}
-function bowler(c, col) {
-  const b = hx(col);
-  c.poly([[14.4, 13.8], [14.4, 8.4], [18, 4.8], [24, 3.8], [30, 4.8], [33.6, 8.4], [33.6, 13.8]], (x, y) => mix(lt(b, 0.16), dk(b, 0.6), clamp((x - 14) / 20 + (y - 4) / 14, 0, 1)), 1, true);
-  c.soft(20, 7, 4, 2, [255, 255, 255], 0.22);
-  c.poly([[14.2, 11.4], [33.8, 11.4], [34, 13.4], [14, 13.4]], '#141018');
-  c.poly([[10.6, 14], [37.4, 14], [38.4, 15.6], [24, 16.6], [9.6, 15.6]], dk(b, 0.7), 1, true); c.soft(24, 16.8, 10, 1.6, [0, 0, 0], 0.3);
-}
-function bandanaMask(c, col) {
-  const b = hx(col);
-  c.poly([[14.8, 23.4], [24, 24.8], [33.2, 23.4], [32.2, 29.4], [28, 33], [24, 34], [20, 33], [15.8, 29.4]], (x, y) => mix(lt(b, 0.1), dk(b, 0.7), clamp((x - 15) / 18, 0, 1)), 1, true);
-  c.curve([[14.8, 23.4], [24, 24.8], [33.2, 23.4]], 0.4, dk(b, 0.5), 0.7);
-  for (let i = 0; i < 16; i++) c.ell(17 + (i % 8) * 2, 27 + Math.floor(i / 8) * 3 + (i % 2) * 0.6, 0.3, 0.3, [255, 255, 255], 0.5);
-  c.poly([[32.4, 23.4], [37.6, 21.8], [38.6, 25], [34.6, 25.6], [38.4, 29.4], [34, 29.2], [31.6, 26]], b, 1, true);
-}
-function poppedCollar(c, col) { const b = hx(col); c.poly([[12, 37], [18.4, 33.4], [21.2, 41], [15, 45]], dk(b, 0.72), 1, true); c.poly([[36, 37], [29.6, 33.4], [26.8, 41], [33, 45]], dk(b, 0.6), 1, true); }
-
 const DRAW = {
-  robber(c, L, o) {
-    torso(c, L.shirt, { pin: L.stripe });
-    face(c, o);
-    bandanaMask(c, L.mask); newsboy(c, L.stripe, dk(hx(L.stripe), 0.7).map((v) => Math.round(v)).reduce((s, v) => s + v.toString(16).padStart(2, '0'), '#'));
+  ranger(c, L, o) {
+    astro(c, L, o, { tint: 0.2, body(c, suit, trim) { c.line(11.6, 36.4, 30, 48, 1.7, '#2e2418', 0.9); c.rect(22.8, 41.6, 2.4, 2, '#c9b458'); },
+      post(c) { c.line(36.4, 12, 40.4, 5.4, 0.4, '#c9d2ff'); c.ell(40.6, 5.2, 0.9, 0.9, '#ff5d7a'); c.ell(10.4, 38, 2.1, 1.3, '#ffd98a'); } });
   },
-  driver(c, L, o) {
-    torso(c, L.jacket); const jc = hx(L.jacket);
-    c.poly([[17, 35], [24, 44], [31, 35], [28, 34.6], [24, 38], [20, 34.6]], '#ecebf2'); poppedCollar(c, L.jacket); c.line(24, 44, 24, 48, 0.4, [20, 20, 20], 0.5);
-    face(c, Object.assign({}, o, { noEyes: true }));
-    newsboy(c, L.cap, L.brim);
-    for (const cx of [19.6, 28.4]) { c.poly([[cx - 3.2, 18.4], [cx + 3.2, 18.4], [cx + 2.8, 21.6], [cx, 22.6], [cx - 2.8, 21.6]], (x, y) => mix([22, 20, 30], [58, 56, 74], clamp((y - 18) / 4.4 + (cx - x) * 0.02, 0, 1)), 1, true); c.line(cx - 2.4, 19.2, cx - 0.6, 19.2, 0.35, [255, 255, 255], 0.5); }
-    c.line(22.8, 19, 25.2, 19, 0.4, '#c9a02a');
+  pilot(c, L, o) {
+    astro(c, L, o, { face: { side: false },
+      post(c) { c.curve([[14.8, 23.4], [15.4, 28.6], [18.6, 31], [21.8, 30.6]], 0.5, '#15151f'); c.ell(22.2, 30.6, 1, 0.8, '#ff4fd8'); c.ell(14.2, 23.2, 1.1, 1.1, '#15151f'); c.rect(21, 34.4, 6, 1, '#ffffff', 0.5); } });
   },
-  safecracker(c, L, o) {
-    torso(c, L.shirt); const sc = hx(L.shirt);
-    c.poly([[16, 35], [22, 34.8], [24, 42], [19, 41]], dk(sc, 0.75), 1, false); c.poly([[32, 35], [26, 34.8], [24, 42], [29, 41]], dk(sc, 0.65), 1, false);
-    c.line(15.4, 36, 16.4, 48, 1.3, '#2a1c14'); c.line(32.6, 36, 31.6, 48, 1.3, '#2a1c14');
-    face(c, Object.assign({}, o, { stubble: true, brow: L.hair }));
-    bowler(c, L.beanie);
-    c.ell(28.2, 19.4, 3.3, 3.3, '#2a2a34'); c.ell(28.2, 19.4, 2.6, 2.6, [190, 225, 235], 0.7); c.line(26.6, 18.2, 28, 17.8, 0.4, [255, 255, 255], 0.8); c.curve([[31.4, 19.4], [34, 17], [34.2, 14]], 0.25, '#2a2a34');
+  engineer(c, L, o) {
+    astro(c, L, o, { face: { stubble: true, brow: L.hair },
+      body(c) { c.line(12, 35.4, 34, 47.6, 1.4, '#3a2a1a', 0.9); c.rect(14.6, 44.2, 3, 3.4, '#8a8e9a'); c.rect(15.4, 42.6, 1.4, 2, '#c9ccd6'); },
+      post(c) { c.poly([[20.8, 5.6], [27.2, 5.6], [26, 3.4], [22, 3.4]], '#2a2a34'); c.ell(24, 4.5, 1.9, 0.9, '#fff3b0'); c.soft(24, 4, 6, 3.4, [255, 243, 176], 0.4); } });
   },
-  hacker(c, L, o) {
-    torso(c, L.hood); const hd = hx(L.hood);
-    c.poly([[17, 35], [24, 48], [31, 35], [28, 34.6], [24, 38], [20, 34.6]], '#ecebf2'); c.poly([[22.8, 37], [25.2, 37], [25.6, 40], [24, 48], [22.4, 40]], hx(L.lens), 1, true);
-    poppedCollar(c, L.hood);
-    face(c, Object.assign({}, o, { noEyes: true }));
-    fedora(c, L.hat, L.lens);
-    const lens = hx(L.lens);
-    for (const cx of [19.6, 28.4]) { c.poly([[cx - 3.2, 18.6], [cx + 3.2, 18.6], [cx + 2.8, 21.8], [cx, 22.6], [cx - 2.8, 21.8]], (x, y) => mix(dk(lens, 0.35), lens, clamp((y - 18.6) / 4 + (cx - x) * 0.03, 0, 1)), 0.9, true); c.line(cx - 2.2, 19.4, cx - 0.4, 19.4, 0.35, [255, 255, 255], 0.55); }
-    c.line(22.8, 19.2, 25.2, 19.2, 0.4, '#17121a');
+  navigator(c, L, o) {
+    astro(c, L, o, { tint: 0.16,
+      inside(c) { c.curve([[17, 25.4], [20, 27.2], [24, 27.8], [28, 27.2], [31, 25.4]], 0.18, '#4de3ff', 0.75); c.curve(circ(30.6, 14.2, 2.2, 16), 0.2, '#4de3ff', 0.85); c.line(30.6, 11, 30.6, 17.4, 0.12, '#4de3ff', 0.7); c.line(27.4, 14.2, 33.8, 14.2, 0.12, '#4de3ff', 0.7); for (const p of [[16.4, 14], [17.6, 16.4], [16.8, 18.2]]) c.ell(p[0], p[1], 0.35, 0.35, '#4de3ff', 0.9); },
+      post(c) { c.line(35.4, 8, 38.4, 2, 0.4, '#c9d2ff'); c.ell(38.6, 1.8, 0.9, 0.9, '#ff4fd8'); } });
   },
-  boss(c, L, o) {
-    torso(c, L.suit, { pin: 1 }); const su = hx(L.suit);
-    c.poly([[17, 35], [24, 48], [31, 35], [28, 34.6], [24, 38], [20, 34.6]], '#f3eee4', 1); c.poly([[22.4, 37], [25.6, 37], [26.4, 40], [24, 48], [21.6, 40]], hx(L.tie), 1, true); c.poly([[22.2, 36.4], [25.8, 36.4], [25.2, 38.4], [22.8, 38.4]], dk(hx(L.tie), 0.7));
-    c.poly([[12, 36.5], [20, 34.6], [23.4, 46], [18.6, 48], [11, 48]], dk(su, 0.72), 1, false); c.poly([[36, 36.5], [28, 34.6], [24.6, 46], [29.4, 48], [37, 48]], dk(su, 0.62), 1, false);
-    c.poly([[32, 41], [36, 40.4], [36.2, 42.4], [32.2, 42.8]], '#f3eee4'); c.poly([[33, 40.6], [34, 39.4], [35, 40.6]], hx(L.tie));
-    face(c, Object.assign({}, o, { brow: L.hair }));
-    fedora(c, L.hat, L.tie);
-    c.poly([[20.6, 27.2], [22.8, 26.4], [24, 26.8], [25.2, 26.4], [27.4, 27.2], [26, 28.2], [24, 27.8], [22, 28.2]], hx(L.hair), 1, true);
+  commander(c, L, o) {
+    astro(c, L, o, { tint: 0.2, face: { brow: '#8a8a96' },
+      body(c, suit, trim) { for (const y of [41.2, 43.2, 45.2]) c.rect(9.4, y, 4.6, 0.9, trim); c.poly([[30.4, 43], [34.4, 43], [34.4, 45.6], [30.4, 45.6]], '#c8383f', 1, false); c.ell(32.4, 44.3, 1, 1, '#ffffff', 0.9); },
+      inside(c) { c.poly([[20.2, 26.6], [22.8, 25.8], [24, 26.2], [25.2, 25.8], [27.8, 26.6], [26.2, 27.8], [24, 27.4], [21.8, 27.8]], '#a8a8b4', 1, true); },
+      post(c) { c.ell(10.2, 38.6, 3, 1.5, hx('#e8b82e')); c.ell(37.8, 38.6, 3, 1.5, hx('#e8b82e')); } });
   },
-  lookout(c, L, o) {
-    torso(c, L.jacket); poppedCollar(c, L.jacket); c.rect(23.4, 38, 1.2, 10, [20, 20, 20], 0.45);
-    face(c, Object.assign({}, o, { side: true, brow: L.hair }));
-    newsboy(c, L.band, dk(hx(L.band), 0.75).map((v) => Math.round(v)).reduce((s, v) => s + v.toString(16).padStart(2, '0'), '#'));
+  observer(c, L, o) {
+    astro(c, L, o, { face: { side: true },
+      post(c) { c.line(36.2, 18.4, 38.4, 18.4, 0.7, '#2a2c3c'); c.poly([[38.2, 16.2], [44.4, 15.2], [44.6, 21.6], [38.4, 20.8]], '#2a2c3c', 1, false); c.ell(44.8, 18.4, 1.3, 3.2, '#4de3ff', 0.9); c.line(39, 17, 43.6, 16.6, 0.3, '#ffffff', 0.45); } });
   },
-  muscle(c, L, o) {
-    torso(c, L.suit, { pin: 1 }); const su = hx(L.suit);
-    c.poly([[19, 35], [24, 44], [29, 35], [27, 34.6], [24, 38], [21, 34.6]], hx(L.tank)); c.poly([[12, 36.5], [20, 34.6], [23.4, 46], [18.6, 48], [11, 48]], dk(su, 0.72), 1, false); c.poly([[36, 36.5], [28, 34.6], [24.6, 46], [29.4, 48], [37, 48]], dk(su, 0.62), 1, false);
-    c.curve([[19.6, 35.6], [20.4, 40], [24, 42.4], [27.6, 40], [28.4, 35.6]], 0.8, '#e8b82e'); c.ell(24, 43, 1.2, 1.4, '#e8b82e');
-    face(c, Object.assign({}, o, { wide: true, frown: true, tilt: 0.55, stubble: true, brow: L.hair }));
-    c.soft(20, 10.4, 5.6, 2.8, [255, 255, 255], 0.2);
-    c.curve([[30.2, 14.6], [31, 17.6], [30.4, 21]], 0.36, '#8a4a4a', 0.9); c.line(29.2, 17, 32.2, 18.2, 0.2, '#d8b8b0', 0.8);
+  trooper(c, L, o) {
+    astro(c, L, o, { tint: 0.18, face: { wide: true, frown: true, tilt: 0.55, stubble: true },
+      body(c, suit, trim) { c.ell(8.6, 40.4, 6.4, 4, dk(suit, 0.78)); c.ell(39.4, 40.4, 6.4, 4, dk(suit, 0.66)); c.line(4.4, 40.2, 12.4, 40.2, 0.6, trim, 0.9); c.line(35.6, 40.2, 43.4, 40.2, 0.6, trim, 0.9); },
+      inside(c) { c.curve([[30.2, 14.6], [31, 17.6], [30.4, 21]], 0.36, '#8a4a4a', 0.9); c.line(29.2, 17, 32.2, 18.2, 0.2, '#d8b8b0', 0.8); } });
   },
-  accountant(c, L, o) {
-    torso(c, L.shirt); const vs = hx(L.vest);
-    c.poly([[10, 48], [11.4, 40], [18, 36], [20, 48]], vs, 1, true); c.poly([[38, 48], [36.6, 40], [30, 36], [28, 48]], dk(vs, 0.85), 1, true);
-    pinstripes(c, SH, vs);
-    c.poly([[22.4, 36.8], [25.6, 36.8], [26.2, 40], [24, 48], [21.8, 40]], hx(L.tie), 1, true); c.poly([[22.2, 36.2], [25.8, 36.2], [25.2, 38.2], [22.8, 38.2]], dk(hx(L.tie), 0.7));
-    c.curve([[14.4, 41.4], [18, 44], [22.6, 44.4]], 0.3, '#e8b82e'); c.ell(14.4, 41.2, 0.7, 0.7, '#e8b82e');
-    face(c, Object.assign({}, o, { noBrows: false, brow: L.hair }));
-    hairShape(c, [[14.2, 15], [14.8, 10.6], [18.6, 7.4], [24, 6.8], [30, 8], [33.4, 11], [33.8, 14.6], [31, 11.8], [25, 10.4], [18.8, 11.4], [16, 13.6]], L.hair, { sx: 22, sy: 8.4, glint: 0.2 });
-    c.poly([[20.8, 27.4], [27.2, 27.4], [27, 28], [20.9, 28]], hx(L.hair), 1, false);
-    for (const cx of [19.8, 28.2]) { c.ell(cx, 19.4, 3.1, 2.7, [255, 255, 255], 0.1); c.curve([[cx - 3.1, 19.4], [cx - 2, 16.9], [cx + 2, 16.9], [cx + 3.1, 19.4], [cx + 2, 22], [cx - 2, 22], [cx - 3.1, 19.4]], 0.38, '#1a1620'); c.line(cx - 1.8, 17.6, cx - 0.4, 17.4, 0.3, [255, 255, 255], 0.6); }
-    c.line(22.9, 19, 25.1, 19, 0.35, '#1a1620'); c.line(16.7, 19.2, 14, 18.6, 0.3, '#1a1620'); c.line(31.3, 19.2, 34, 18.6, 0.3, '#1a1620');
+  scientist(c, L, o) {
+    astro(c, L, o, {
+      body(c, suit, trim) { c.rect(26.2, 42.8, 1.8, 4.6, [77, 227, 255], 0.9); c.rect(26.2, 42.4, 1.8, 0.8, '#ffffff'); c.rect(23, 42.8, 1.8, 4.6, [255, 79, 216], 0.8); },
+      inside(c) { for (const cx of [19.8, 28.2]) { c.ell(cx, 19.4, 3.1, 2.7, [255, 255, 255], 0.1); c.curve(circ(cx, 19.4, 3.1, 16), 0.34, '#1a1620', 0.95); } c.line(22.9, 19, 25.1, 19, 0.3, '#1a1620'); c.line(16.7, 19.2, 14.2, 18.8, 0.26, '#1a1620'); c.line(31.3, 19.2, 33.8, 18.8, 0.26, '#1a1620'); } });
   },
 };
-function kingpin(c) {
-  const o = { skin: 1, eye: 1, brow: '#141018' };
-  const suit = hx('#1b1b28');
-  torso(c, '#1b1b28', { pin: 1 });
-  face(c, Object.assign({}, o, { stubble: true, wide: true, tilt: 0.5 }));
-  // white shirt, burgundy tie, wide lapels
-  c.poly([[17.6, 34.6], [30.4, 34.6], [24, 48]], '#f3eee4', 1);
-  c.poly([[22.2, 36.6], [25.8, 36.6], [26.6, 40.4], [24, 48], [21.4, 40.4]], '#8a1f3a', 1, true); c.poly([[22, 35.6], [26, 35.6], [25.2, 38], [22.8, 38]], '#6a1228');
-  c.poly([[17.6, 34.6], [21, 33.8], [24, 38.4], [22.2, 36.6]], '#ffffff', 0.9); c.poly([[30.4, 34.6], [27, 33.8], [24, 38.4], [25.8, 36.6]], '#ece6da', 0.9);
-  c.poly([[11.5, 36.6], [19.6, 34.4], [23.4, 46.4], [18.6, 48], [10.5, 48]], dk(suit, 1.5), 1, false); c.poly([[36.5, 36.6], [28.4, 34.4], [24.6, 46.4], [29.4, 48], [37.5, 48]], dk(suit, 1.2), 1, false);
-  c.line(19.6, 34.6, 23.4, 46.4, 0.35, [255, 255, 255], 0.14); c.line(28.4, 34.6, 24.6, 46.4, 0.35, [255, 255, 255], 0.14);
-  c.poly([[31.6, 41], [36, 40.4], [36.2, 42.6], [31.8, 43]], '#f3eee4'); c.poly([[32.8, 40.6], [34, 39.2], [35.2, 40.6]], '#8a1f3a');
-  // slicked back black hair with a silver streak
-  hairShape(c, [[14, 19], [13.6, 11.4], [17.4, 6.8], [24, 5.2], [30.6, 6.8], [34.4, 11.4], [34, 19], [32.6, 14.4], [28.6, 12.6], [24, 12.2], [19.4, 12.6], [15.4, 14.4]], '#17141c', { sx: 21, sy: 8.2, glint: 0.28, shine: 0.7 });
-  c.poly([[19.4, 12.6], [21.6, 10.4], [25.4, 7.4], [29.6, 6.2], [30.4, 7.6], [26.6, 9.8], [23.2, 12.2]], (x, y) => mix([232, 234, 240], [170, 176, 190], clamp((x - 19) / 11, 0, 1)), 0.95, true);
-  c.curve([[16, 13.4], [19, 9.6], [24, 7], [30, 7.4]], 0.18, [255, 255, 255], 0.14);
-  // black moustache and a cigar
-  c.poly([[20, 26.8], [22.8, 26], [24, 26.4], [25.2, 26], [28, 26.8], [26.4, 28.4], [24, 27.8], [21.6, 28.4]], '#141018', 1, true);
-  accessory(c, 'cig', '#ffd24a');
+// the Admiral: the flagship. A gold-trimmed white suit, gold glass, silver brows and a captain's patch
+function admiral(c) {
+  const L = { suit: '#f3f4fa', trim: '#e8b82e', glass: '#ffd98a', cap: '#f3f4fa', skin: 1 };
+  astro(c, L, { skin: 1, eye: 1, brow: '#c9ccd6' }, { tint: 0.24, shell: '#f0d98a', face: { wide: true, stubble: true, brow: '#c9ccd6', tilt: 0.4 },
+    body(c, suit, trim) { for (const y of [41, 42.8, 44.6, 46.4]) c.rect(9.2, y, 5, 0.8, trim); for (const y of [41, 42.8, 44.6, 46.4]) c.rect(33.8, y, 5, 0.8, trim); c.poly([[21.4, 41.4], [26.6, 41.4], [26.6, 46.6], [24, 47.8], [21.4, 46.6]], '#e8b82e', 1, true); c.ell(24, 44, 1.4, 1.4, '#c8383f'); },
+    inside(c) { c.poly([[20, 26.8], [22.8, 26], [24, 26.4], [25.2, 26], [28, 26.8], [26.4, 28.4], [24, 27.8], [21.6, 28.4]], '#c9ccd6', 1, true); c.poly([[18.4, 11.2], [24, 9], [29.6, 11.2], [24, 11.6]], '#e8b82e', 0.95, true); },
+    post(c) { c.ell(10.2, 38.4, 3.4, 1.6, hx('#e8b82e')); c.ell(37.8, 38.4, 3.4, 1.6, hx('#e8b82e')); c.ell(24, 4.2, 1.2, 1.2, '#ffd98a'); c.soft(24, 4.2, 4, 3, [255, 217, 138], 0.4); } });
 }
 
 // small extras on a face, so two of the same crook still look different
 function accessory(c, acc, col) {
   if (acc === 'plaster') { c.poly([[26.6, 22.6], [32, 20.6], [33.2, 23], [27.8, 25.2]], '#ecc89c', 1, true); c.soft(30, 23, 3, 1.4, [0, 0, 0], 0.14); c.poly([[29, 21.4], [30.6, 21], [31.2, 24], [29.6, 24.4]], '#f6dcb8', 0.9); c.ell(29.8, 22.7, 0.25, 0.25, '#c89a68'); c.ell(30.4, 23.1, 0.25, 0.25, '#c89a68'); }
-  else if (acc === 'earring') { const cc = typeof col === 'string' ? col : '#ffd24a'; c.curve([[13.8, 24.2], [12.2, 25.4], [12.6, 27.4], [14, 27.8], [14.8, 26.6]], 0.5, cc); c.soft(13.6, 25.6, 1.6, 1.4, [255, 255, 255], 0.0); c.line(12.6, 25.4, 12.8, 26.6, 0.2, [255, 255, 255], 0.6); }
-  else if (acc === 'cig') { c.poly([[24.6, 28.2], [36.6, 27.2], [36.8, 29.4], [24.8, 30]], (x, y) => mix([120, 78, 40], [78, 48, 24], clamp((x - 24) / 12, 0, 1))); c.poly([[27, 28.1], [28.2, 28], [28.4, 29.6], [27.2, 29.7]], '#d8b25a'); c.poly([[36.2, 27.2], [37.4, 27.1], [37.6, 29.3], [36.4, 29.4]], '#9a9aa4'); c.ell(37.6, 28.2, 0.7, 1, '#ff6a2a', 0.9); c.soft(40, 23.6, 1.8, 4, [220, 224, 235], 0.34); c.soft(42, 17.6, 2.2, 4, [220, 224, 235], 0.22); }
+  else if (acc === 'beacon') { const cc = typeof col === 'string' ? col : '#ffd98a'; c.line(33, 7, 35.6, 2.6, 0.4, '#c9d2ff'); c.ell(35.8, 2.4, 1.1, 1.1, cc); c.soft(35.8, 2.4, 3.4, 3.4, hx(cc), 0.35); }
+  else if (acc === 'patch') { const cc = typeof col === 'string' ? col : '#4de3ff'; c.poly([[9.6, 43], [14.2, 43], [14.2, 47.4], [9.6, 47.4]], cc, 1, false); c.ell(11.9, 45.2, 1.1, 1.1, '#05060f', 0.8); c.line(9.6, 43, 14.2, 47.4, 0.2, '#ffffff', 0.5); }
 }
 
-function bgFor(c, team, bgIdx) {
-  const b = hx(BGS[team][bgIdx]);
-  c.rect(0, 0, N, N, (x, y) => mix(lt(b, 0.06), dk(b, 0.7), clamp(y / 48 * 0.7 + (x - 24) * 0.01, 0, 1)));
-  for (let y = 5; y < N; y += 8) c.rect(0, y, N, 0.18, [255, 255, 255], 0.08);
-  c.soft(24, 20, 24, 24, [255, 255, 255], 0.05);
+function bgFor(c, bgIdx, seed) {
+  const b = hx(BGS[bgIdx]);
+  c.rect(0, 0, N, N, (x, y) => mix(lt(b, 0.04), dk(b, 0.6), clamp(y / 48 * 0.8 + (x - 24) * 0.01, 0, 1)));
+  c.soft(10, 40, 22, 14, [157, 123, 255], 0.1); c.soft(40, 8, 16, 10, [77, 227, 255], 0.07);
+  for (let i = 0; i < 46; i++) { const h1 = hash(i + 1, (seed % 997) + 3), h2 = hash(i + 91, (seed % 991) + 7), r = 0.12 + hash(i, 5) * 0.2; c.ell(h1 * N, h2 * N, r, r, i % 7 === 0 ? '#bfe6ff' : '#ffffff', 0.35 + hash(i, 9) * 0.6); }
+  const pc = [[[255, 190, 130], [190, 90, 80]], [[200, 170, 255], [100, 70, 210]], [[150, 230, 255], [60, 130, 210]]][seed % 3];
+  c.ell(41.5, 9.5, 4.6, 4.6, (x, y) => mix(pc[0], dk(pc[1], 0.6), clamp(((x - 39) + (y - 7)) / 9, 0, 1)));
 }
 function paint(slot, secret) {
-  const t = traitsFor(slot, secret), L = SPECIES[t.team][t.species].looks[t.look];
-  const c = new Canvas(BGS[t.team][t.bg]); bgFor(c, t.team, t.bg);
-  DRAW[t.species](c, L, { skin: L.skin, eye: (t.look + t.species.length) % 4, brow: L.hair });
+  const t = traitsFor(slot, secret), L = SPECIES[t.species].looks[t.look];
+  const c = new Canvas(BGS[t.bg]); bgFor(c, t.bg, t.seed);
+  DRAW[t.species](c, L, { skin: L.skin, eye: (t.look + t.species.length) % 4, brow: '#3a2a1e' });
   accessory(c, t.acc, ACC_COL[t.accColor]);
   return c;
 }
-function paintFlagship() { const c = new Canvas('#14091f'); c.rect(0, 0, N, N, (x, y) => mix([40, 20, 60], [12, 6, 20], clamp(y / 48 + (x - 24) * 0.01, 0, 1))); for (let y = 5; y < N; y += 8) c.rect(0, y, N, 0.18, '#ffd24a', 0.16); c.soft(24, 20, 24, 24, [255, 214, 90], 0.1); kingpin(c); return c; }
+function paintFlagship() { const c = new Canvas('#070b1f'); bgFor(c, 1, 7); c.soft(24, 20, 26, 26, [255, 214, 90], 0.1); admiral(c); return c; }
 
 // ---- flat pictures for logos and tiles, cached because drawing one takes a moment ----
 const picCache = new Map();

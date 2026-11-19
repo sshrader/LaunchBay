@@ -130,6 +130,7 @@ td .mini>div{height:100%;background:var(--gold)}
 </div>
 </div>
 
+<script src="/ships.js"></script>
 <script src="/gridfx.js"></script>
 <script>
 (function(){
@@ -155,6 +156,7 @@ td .mini>div{height:100%;background:var(--gold)}
     var chips=$('chips');chips.textContent='';
     chips.appendChild(el('span','chip'+(j.founder?' good':''),j.founder?'Launch Bay · flagship, one of one':((j.agent?j.agent.name+' · '+j.agent.role.toLowerCase():'Agent #'+String(j.bear).padStart(2,'0'))+' · '+String(j.bear).padStart(2,'0')+' of '+j.total)));
     chips.appendChild(el('span','chip'+(cv&&cv.complete?' good':''),cv?(cv.complete?'Graduated':'On the bonding curve'):'Curve not read'));
+    if(window.Ships&&j.ship){var sp=window.Ships.list.filter(function(x){return x.id===j.ship})[0];if(sp){var sc=el('span','chip');var cvs=document.createElement('canvas');cvs.style.cssText='width:24px;height:30px;vertical-align:middle;margin-right:6px';sc.appendChild(cvs);sc.appendChild(document.createTextNode('Launched in the '+sp.name));chips.appendChild(sc);window.Ships.thumb(cvs,sp.id)}}
     $('desc').textContent=j.description||'';
     var ab=$('agentbox');ab.textContent='';
     if(j.agent){
@@ -164,10 +166,10 @@ td .mini>div{height:100%;background:var(--gold)}
     }
     if(j.report){
       var warns=j.report.lines.filter(function(l){return l.level==='warn'}).length,heat=Math.min(5,1+warns),hb=$('heat');hb.textContent='';
-      var hl=el('span','lab','HEAT LEVEL');hb.appendChild(hl);var NS='http://www.w3.org/2000/svg';
+      var hl=el('span','lab','TURBULENCE');hb.appendChild(hl);var NS='http://www.w3.org/2000/svg';
       for(var si=0;si<5;si++){var sv=document.createElementNS(NS,'svg');sv.setAttribute('viewBox','0 0 16 16');sv.setAttribute('aria-hidden','true');var pg=document.createElementNS(NS,'polygon');pg.setAttribute('points','8,1 10,6 15.5,6 11,9.5 12.8,15 8,11.6 3.2,15 5,9.5 .5,6 6,6');pg.setAttribute('fill',si<heat?'#ff4fd8':'#2a2548');sv.appendChild(pg);hb.appendChild(sv)}
-      hb.setAttribute('role','img');hb.setAttribute('aria-label','Heat level '+heat+' of 5');
-      hb.appendChild(el('p',null,warns?(warns===1?'One thing is flagged, so this coin is running a little hot.':warns+' things are flagged, so this coin is running hot.'):'Nothing is flagged, so the heat stays at the minimum.'));hb.hidden=false;
+      hb.setAttribute('role','img');hb.setAttribute('aria-label','Turbulence level '+heat+' of 5');
+      hb.appendChild(el('p',null,warns?(warns===1?'One thing is flagged, so this coin is a little bumpy.':warns+' things are flagged, so this coin is rough going.'):'Nothing is flagged, so the turbulence stays at the minimum.'));hb.hidden=false;
       ab.appendChild(el('p','head'+(j.report.status==='attention'?' attention':''),j.report.headline));
       var ul=el('ul');j.report.lines.forEach(function(l){var li=el('li',l.level);li.appendChild(el('i',null,l.level==='warn'?'!':l.level==='good'?'+':'>'));li.appendChild(el('span',null,l.text));ul.appendChild(li)});ab.appendChild(ul);
       if(j.report.ability){var A=j.report.ability,ad=el('div','abil');ad.appendChild(el('h3',null,'Special ability: '+A.name));ad.appendChild(el('p','does',A.does));

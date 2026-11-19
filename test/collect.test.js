@@ -154,7 +154,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   r = await post('/api/launched', { mint, signature: s3 }, xa2.json.token);
   check('a transaction that is not a pump.fun launch is refused', r.status === 422);
   const s4 = sigOf(); txs[s4] = launchTx(a.address, mint);
-  r = await post('/api/launched', { mint, signature: s4, splitSignature: sigOf() }, xa2.json.token); r = { status: r.status, json: await r.json() };
+  r = await post('/api/launched', { mint, signature: s4, splitSignature: sigOf(), ship: 'falcon' }, xa2.json.token); r = { status: r.status, json: await r.json() };
   check('a real launch locks the bear', r.status === 200 && r.json.ok && r.json.slot === SL, r.status + ' ' + JSON.stringify(r.json));
   r = await (await fetch(base + '/api/bears')).json();
   const locked = r.bears.find((x) => x.n === SL);
@@ -179,6 +179,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   check('coin page data has supply and the bonding curve', cj.onchain.supply === 1000000000 && cj.onchain.curve && Math.abs(cj.onchain.curve.progress - 12.6) < 0.1 && cj.onchain.curve.raisedSol === 10 && cj.onchain.curve.marketCapSol > 0, JSON.stringify(cj.onchain.curve));
   check('coin page data has holders, the dev share and top 10 without the curve', cj.onchain.holders.length === 3 && cj.onchain.holders[0].isCurve && cj.onchain.holders[1].isDev && cj.onchain.devHoldPct === 5 && cj.onchain.top10Pct === 7, JSON.stringify(cj.onchain).slice(0, 300));
   check('/api/bears gives every agent a name and role', (await (await fetch(base + '/api/bears')).json()).bears.every((x) => x.agent && x.agent.name && x.agent.role));
+  check('the chosen spaceship is saved and shown on the coin page', cj.ship === 'falcon', String(cj.ship));
   check('coin page data names its agent', cj.agent && /^[A-Z]+$/.test(cj.agent.name) && /^[A-Z]+$/.test(cj.agent.role) && cj.agent.blurb.length > 10, JSON.stringify(cj.agent));
   check('coin page data has an agent report built from the chain numbers', cj.report && cj.report.lines.some((l) => l.kind === 'curve' && /12\.6% full/.test(l.text)) && cj.report.lines.some((l) => l.kind === 'dev' && /holds 5% of the supply/.test(l.text)) && cj.report.status === 'steady' && /not advice/.test(cj.report.note), JSON.stringify(cj.report).slice(0, 300));
   check('an unknown coin has no page', (await fetch(base + '/api/coin/' + b58encode(crypto.randomBytes(32)))).status === 404);
@@ -295,7 +296,8 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
     const names = new Set(), looks = new Set();
     for (let n = 0; n < 24; n++) { const t = artM.traitsFor(n, 'unit-secret'); names.add(t.name); looks.add((() => { return artM.png(n, 'unit-secret', 64).toString('base64'); })()); }
     check('agents in a set each have their own name and their own picture', names.size === 24 && looks.size === 24);
-    check('even slots are crew, odd slots are syndicate, and they use their own classes', [0, 1, 2, 3, 4, 5].every((n) => { const a = artM.agentFor(n, 'unit-secret'); return a.team === (n % 2 ? 'SYNDICATE' : 'CREW') && artM.ROLES[a.role].team === (n % 2 ? 'syndicate' : 'crew'); }));
+    check('every slot is an astronaut with a role from the list, and the set has no teams', [0, 1, 2, 3, 4, 5, 6, 7].every((n) => { const a = artM.agentFor(n, 'unit-secret'); return !('team' in a) && artM.ROLES[a.role] && /^[A-Z]+$/.test(a.name); }));
+    check('ships: six designs, an unknown ship falls back to nova on the server', require('../ships.js').SHIPS.length === 6 && require('../ships.js').isShip('falcon') && !require('../ships.js').isShip('x'));
     const ag = artM.agentFor(0, 'unit-secret'), ag2 = artM.agentFor(0, 'unit-secret'), ag3 = artM.agentFor(0, 'other-secret');
     check('an agent is the same every time for the same secret', JSON.stringify(ag) === JSON.stringify(ag2) && ag.name && ag.role && ag.blurb);
     check('a different secret gives a different set', [0, 1, 2, 3].some((n) => JSON.stringify(artM.agentFor(n, 'unit-secret')) !== JSON.stringify(artM.agentFor(n, 'other-secret'))) && ag3.name);
@@ -323,15 +325,15 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
       const cc = await chainM.coinChain(mock, MINT, DEV, '');
       check('the audit reads the mint and freeze authorities', cc.authority && cc.authority.mint === null && cc.authority.freeze === 'FreezeFreezeFreeze1111');
       check('the launch scan finds early buyers and what they hold', cc.launch && cc.launch.early === 2 && cc.launch.wallets === 1 && cc.launch.heldCount === 1 && cc.launch.heldPct === 20, JSON.stringify(cc.launch));
-      const au = statusReport({ name: 'A', role: 'SAFECRACKER', ability: require('../grid.js').ABILITIES.SAFECRACKER }, {}, cc, 1).ability, hu = statusReport({ name: 'H', role: 'ROBBER', ability: require('../grid.js').ABILITIES.ROBBER }, {}, cc, 1).ability;
+      const au = statusReport({ name: 'A', role: 'ENGINEER', ability: require('../grid.js').ABILITIES.ENGINEER }, {}, cc, 1).ability, hu = statusReport({ name: 'H', role: 'RANGER', ability: require('../grid.js').ABILITIES.RANGER }, {}, cc, 1).ability;
       check('auditor and hunter report what they found', au.lines[0].level === 'good' && au.lines[1].level === 'warn' && hu.lines[1].level === 'warn' && /20%/.test(hu.lines[1].text));
-      const wd = statusReport({ name: 'W', role: 'MUSCLE', ability: require('../grid.js').ABILITIES.MUSCLE }, {}, { supply: 1e9, devHoldPct: 10, holders: [], curve: { complete: false, progress: 40, raisedSol: 30, vSol: 60, vTok: 700e6 } }, 1).ability;
+      const wd = statusReport({ name: 'W', role: 'TROOPER', ability: require('../grid.js').ABILITIES.TROOPER }, {}, { supply: 1e9, devHoldPct: 10, holders: [], curve: { complete: false, progress: 40, raisedSol: 30, vSol: 60, vTok: 700e6 } }, 1).ability;
       check('warden works out a sale from the curve reserves', /sold everything/.test(wd.lines[1].text) && /fall about/.test(wd.lines[1].text), JSON.stringify(wd.lines));
     }
     const abs = require('../grid.js').ABILITIES, rr = (role, w) => statusReport({ name: 'X', role, ability: abs[role] }, { launchedAt: 1000 }, { curve: { complete: false, progress: 52, raisedSol: 44, marketCapSol: 80 }, devHoldPct: 3, top10Pct: 20, holderCount: 41, errors: [] }, 3 * 3600000, w).ability;
     const hist = { first: { at: 0, cap: 50, holders: 20, dev: 8, top10: 30 }, peak: { cap: { v: 100, at: 1e5 }, holders: { v: 45, at: 2e5 }, curve: { v: 55, at: 2e5 } }, marks: { 25: 6e4 }, devMax: 8, n: 6 };
     check('every class has its own named ability', Object.keys(abs).length === 9 && new Set(Object.values(abs).map((a) => a.name)).size === 9);
-    check('abilities compare now with what the agent saw before', /up 21/.test(rr('HACKER', hist).lines[1].text) && /up 60%/.test(rr('ACCOUNTANT', hist).lines[1].text) && rr('LOOKOUT', hist).lines.some((l) => l.level === 'warn' && /fell from 8%/.test(l.text)) && /25%/.test(rr('BOSS', hist).lines[0].text));
+    check('abilities compare now with what the agent saw before', /up 21/.test(rr('NAVIGATOR', hist).lines[1].text) && /up 60%/.test(rr('SCIENTIST', hist).lines[1].text) && rr('OBSERVER', hist).lines.some((l) => l.level === 'warn' && /fell from 8%/.test(l.text)) && /25%/.test(rr('COMMANDER', hist).lines[0].text));
     check('abilities work with no history and the flagship sweeps them all', Object.keys(abs).every((k) => rr(k, null).lines.length > 0) && rr('FLAGSHIP', hist).lines.length === 11);
     const done = statusReport({ name: 'ZED', role: 'NAVIGATOR' }, {}, { curve: { complete: true, progress: 100, raisedSol: 85, marketCapSol: 400 } }, 1);
     check('a graduated coin says so', done.lines[0].level === 'good' && /graduated/.test(done.lines[0].text));
