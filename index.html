@@ -145,6 +145,13 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 #lift{position:fixed;inset:0;z-index:60;background:#03040c}
 #lift canvas{display:block;width:100%;height:100%}
 #lift button{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:max(16px,env(safe-area-inset-top,0px))}
+#go{position:relative;overflow:hidden;min-width:190px;user-select:none;-webkit-user-select:none;touch-action:none}
+#go .fill{position:absolute;inset:0;width:calc(var(--fuel,0)*100%);background:linear-gradient(90deg,#ff9a5c,#ffd98a);opacity:.9;pointer-events:none;transition:width .08s linear}
+#go .lab{position:relative}
+#go.fueling{animation:rumble .07s linear infinite;box-shadow:0 0 28px rgba(255,154,92,.55)}
+@keyframes rumble{0%{transform:translate(0,0)}25%{transform:translate(1px,-1px)}50%{transform:translate(-1px,1px)}75%{transform:translate(1px,1px)}100%{transform:translate(-1px,0)}}
+@media(prefers-reduced-motion:reduce){#go.fueling{animation:none}}
+.holdhint{font:500 12px var(--mono);color:var(--dim);letter-spacing:.06em}
 @keyframes rise{0%{opacity:0;transform:translateY(10px)}35%{opacity:0}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash{display:none}#splash .cap{animation:none}}
 </style>
@@ -206,7 +213,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   <div><label id="shiplab">Spaceship <span class="rv">pick your ride</span></label><div class="ships" id="ships" role="radiogroup" aria-labelledby="shiplab"></div><div class="note" id="shipnote"></div></div>
   <div><label for="after">After launch, open</label><select id="after"><option value="coin">The coin page on Launch Bay</option><option value="gmgn">GMGN (mainnet only)</option><option value="none">Nothing, I will pick from the menu</option></select></div>
   <div class="note" id="feenote"></div>
-  <div class="row"><button class="btn go" id="go" type="button">Launch</button><button class="btn" id="air" type="button" hidden>Get 1 devnet SOL</button><span class="msg" id="msg"></span></div>
+  <div class="row"><button class="btn go" id="go" type="button" aria-label="Launch. Press and hold to fuel, then it lifts off."><span class="fill"></span><span class="lab" id="golab">Hold to fuel</span></button><button class="btn" id="air" type="button" hidden>Get 1 devnet SOL</button><span class="msg" id="msg"></span></div>
   <div class="log" id="log"></div>
   <div class="result" id="result"></div>
 </div>
@@ -477,6 +484,20 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   });
   var feeBusy2=false,keepFeeLog=false;
 
+  // Hold to fuel: press and hold the Launch button until the tank is full and the launch starts. Release early and it drains.
+  (function(){var go=$('go'),fill=go.querySelector('.fill'),lab=$('golab'),HOLD=1300,t0=0,raf=0,fueled=false,holding=false,drain=0;
+    function setFuel(v){go.style.setProperty('--fuel',v.toFixed(3));lab.textContent=v>=1?'Ignition!':(v>0?'Fueling '+Math.round(v*100)+'%':'Hold to fuel')}
+    function tick(now){if(!holding)return;var v=Math.min(1,(now-t0)/HOLD);setFuel(v);if(v>=1){holding=false;go.classList.remove('fueling');fueled=true;try{if(navigator.vibrate)navigator.vibrate(60)}catch(e){}go.click();setTimeout(function(){if(!go.disabled)setFuel(0)},1800);return}raf=requestAnimationFrame(tick)}
+    function start(e){if(go.disabled||holding)return;if(e&&e.type==='pointerdown'&&e.button>0)return;holding=true;cancelAnimationFrame(drain);t0=performance.now();go.classList.add('fueling');try{if(navigator.vibrate)navigator.vibrate(15)}catch(e2){}raf=requestAnimationFrame(tick)}
+    function stop(){if(!holding)return;holding=false;cancelAnimationFrame(raf);go.classList.remove('fueling');var v=parseFloat(go.style.getPropertyValue('--fuel'))||0;
+      (function d(){v-=0.06;if(v<=0){setFuel(0);return}setFuel(v);drain=requestAnimationFrame(d)})()}
+    go.addEventListener('pointerdown',start);['pointerup','pointercancel'].forEach(function(n){window.addEventListener(n,stop)});window.addEventListener('blur',stop);
+    go.addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();start(e)}});go.addEventListener('keyup',function(e){if(e.key===' '||e.key==='Enter')stop()});
+    go.addEventListener('contextmenu',function(e){e.preventDefault()});
+    // a plain click does nothing; only a finished hold gets through to the launch handler
+    go.addEventListener('click',function(e){if(fueled){fueled=false;return}e.stopImmediatePropagation();e.preventDefault();say('Press and hold the Launch button until the tank is full.','warn')},true);
+    new MutationObserver(function(){if(!go.disabled)setFuel(0)}).observe(go,{attributes:true,attributeFilter:['disabled']});
+    setFuel(0)})();
   $('go').addEventListener('click',async function(){
     if(running||!st)return;
     steps=[];drawLog();say('');$('result').classList.remove('on');
