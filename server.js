@@ -199,7 +199,7 @@ function bearsState(res) {
     bears.push({ n: i + 1, agent: { name: ag.name, role: ag.role, blurb: ag.blurb, ability: ag.ability, breed: ag.breed }, state: L ? 'launched' : H ? 'held' : 'open', symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null, dev: L ? L.wallet : null, split: L ? !!L.split : false });
   }
   const recent = Object.keys(d.launched).map((k) => ({ bear: k === 'F' ? 'F' : Number(k) + 1, agent: k === 'F' ? PRIME.name : art.agentFor(Number(k), imageSecret()).name, name: d.launched[k].name, symbol: d.launched[k].symbol, mint: d.launched[k].mint, at: d.launched[k].at, ship: d.launched[k].ship || 'nova' }))
-    .sort((x, y) => y.at - x.at).slice(0, 12);
+    .sort((x, y) => y.at - x.at).slice(0, 24);
   send(res, 200, {
     cluster: c.cluster, pairs: PAIRS_ON, total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
     open: bears.filter((b) => b.state === 'open').length,
@@ -564,6 +564,7 @@ const server = http.createServer(async (req, res) => {
     { const m = /^\/api\/coin\/([1-9A-HJ-NP-Za-km-z]{32,44})$/.exec(p); if (m) return await coinInfo(res, m[1]); }
     if (/^\/coin\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p)) { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff' }); return res.end(fs.readFileSync(COIN_PAGE)); }
     if (p === '/admin') { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' }); return res.end(fs.readFileSync(path.join(__dirname, 'admin.html'))); }
+    if (p === '/galaxy.js') return serveStatic(res, path.join(__dirname, 'galaxy.js'), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/ships.js') return serveStatic(res, path.join(__dirname, 'ships.js'), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/gridfx.js') return serveStatic(res, path.join(__dirname, p.slice(1)), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
     if (p === '/api/health') return send(res, 200, { ok: true });

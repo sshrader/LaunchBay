@@ -157,6 +157,14 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 .recent .lcship{width:54px;height:64px;display:block}
 .recent .lcmeta{display:block;color:var(--good);margin-top:1px}
 .recent a.lc img{width:44px;height:44px}
+.galaxy{position:relative;margin:16px 0 8px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#03040c;box-shadow:0 0 50px rgba(120,100,255,.14)}
+.galaxy canvas{display:block;width:100%;height:clamp(340px,52vw,470px)}
+.gtitle{position:absolute;left:16px;top:12px;display:flex;gap:10px;align-items:baseline;font:500 12px var(--mono);letter-spacing:.14em;color:var(--dim);pointer-events:none}
+.gtitle b{color:var(--good);font-weight:500}
+.ghint{position:absolute;left:16px;bottom:10px;font:400 12px var(--mono);color:var(--dim);pointer-events:none;opacity:.85}
+.gtip{position:absolute;left:0;top:0;display:grid;gap:2px;min-width:150px;max-width:240px;padding:10px 12px;border:1px solid var(--good);border-radius:10px;background:rgba(5,6,15,.94);box-shadow:0 0 24px rgba(77,227,255,.25);pointer-events:none;font:500 12px var(--mono);color:var(--dim)}
+.gtip b{font:700 15px var(--display);color:var(--fg);overflow-wrap:anywhere}
+.gtip .g{color:var(--good)}.gtip .o{color:var(--sun);margin-top:3px}
 @keyframes rise{0%{opacity:0;transform:translateY(10px)}35%{opacity:0}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash{display:none}#splash .cap{animation:none}}
 </style>
@@ -191,6 +199,12 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 
 <div class="radio" aria-hidden="true"><span><b>MISSION CONTROL</b> &nbsp;▶ T-minus 10, all stations go &nbsp;·&nbsp; <b>NAV</b> Course set for the Milky Way &nbsp;·&nbsp; <b>SOLAR</b> Flare activity low, launch window open &nbsp;·&nbsp; <b>TIP</b> Every coin gets a flight log &nbsp;·&nbsp; <b>WEATHER</b> Clear skies, no nebula in sight</span></div>
 
+<section class="galaxy" aria-label="The galaxy: every launched coin is a ship in orbit">
+  <canvas id="galaxy" aria-label="An interactive galaxy. Each launched coin is a ship flying its own orbit. The list of launched coins below has the same coins as links."></canvas>
+  <div class="gtitle"><b>THE GALAXY</b><span id="gcount">loading the sky…</span></div>
+  <div class="ghint" id="ghint">Hover a ship to slow it down. Click to open its coin.</div>
+  <div class="gtip" id="gtip" hidden></div>
+</section>
 <div class="founder" id="founder" hidden></div>
 
 <div id="recent" hidden><h2>Launched coins</h2><div class="recent" id="recentlist"></div></div>
@@ -237,6 +251,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 
 <script src="/launch.js"></script>
 <script src="/ships.js"></script>
+<script src="/galaxy.js"></script>
 <script src="/gridfx.js"></script>
 <div id="lift" hidden aria-live="polite"><canvas id="liftcv" aria-label="Your spaceship lifting off"></canvas><button class="btn" id="liftx" type="button">Skip</button></div>
 <script>
@@ -344,8 +359,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
   }
   function drawFounder(){
     var f=st&&st.founder,box=$('founder');
-    if(!st){box.hidden=true;return}
-    if(!f)f={state:'display',short:''};
+    if(!st||!f||!(pubkey&&short(pubkey)===f.short&&f.state!=='launched')){box.hidden=true;return}
     box.hidden=false;box.textContent='';
     var im=document.createElement('img');im.src='/api/founder.png?v=astro';im.alt='Launch Bay, the flagship: the Admiral: a gold-trimmed white suit with a gold visor and silver brows';box.appendChild(im);
     var d=document.createElement('div'),tg=document.createElement('div'),h=document.createElement('h3'),p=document.createElement('p');
@@ -364,8 +378,12 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     box.appendChild(d);
   }
   function ago(at){var s=Math.max(0,Math.round((Date.now()-at)/1000));if(s<45)return 'just now';if(s<3600)return Math.round(s/60)+' min ago';if(s<86400)return Math.round(s/3600)+' h ago';return Math.round(s/86400)+' d ago'}
+  var galaxy=null;try{galaxy=new Galaxy($('galaxy'),$('gtip'));galaxy.start()}catch(eg){}
   function drawRecent(list){
     var box=$('recent'),l=$('recentlist');l.textContent='';
+    var gl=(list||[]).filter(function(r){return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(r.mint||'')});
+    if(galaxy){galaxy.setCoins(gl);$('gcount').textContent=gl.length?gl.length+(gl.length===1?' ship':' ships')+' in flight':'no ships yet';$('ghint').hidden=!gl.length}
+    list=gl.slice(0,12);
     if(!list||!list.length){box.hidden=true;return}
     list.forEach(function(r){
       if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(r.mint||''))return;

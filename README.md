@@ -64,4 +64,5 @@ Set `ENABLE_PAIRS=1` with `CLUSTER=mainnet` and the launch form gets a **Pair wi
 
 A paired launch is create-only for now: no first buy and no creator fee split, so all creator fees go to the launcher's wallet and are paid in the quote coin. Pump coins whose quote sits on a deeper chain are refused. This path is untested on-chain: try one small mainnet launch before relying on it. The coin page notes that SOL figures do not apply to a paired coin.
 
+- **Galaxy:** the home page has an interactive galaxy (`galaxy.js`): every launched coin is a ship on its own orbit with its ticker and astronaut; hover to slow and read a card, click to open the coin. The flagship card now only shows for the founder wallet.
 - **Spaceships:** the launch form has a ship picker (`ships.js`: Comet, Nova, Orbiter, Saucer, Falcon, Pod, all drawn in code). The choice is stored with the launch (`ship`), shown on the coin page, and plays a short lift-off scene after a launch.
