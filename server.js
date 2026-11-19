@@ -14,7 +14,11 @@ const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : path.join(__dirname, 'data'));
 fs.mkdirSync(DATA_DIR, { recursive: true });
 // Optional quote pairs (launching a coin priced in a tokenized stock or another listed coin). Off unless ENABLE_PAIRS=1, and mainnet only.
-const PAIRS_ON = process.env.ENABLE_PAIRS === '1' && process.env.CLUSTER === 'mainnet';
+// Quote pairs are OFF by default. The owner flips them on and off from /admin (saved in DATA_DIR/settings.json); ENABLE_PAIRS=1 only sets
+// the starting value before anything is saved. They only ever work on mainnet.
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+function readSettings() { try { return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) || {}; } catch (e) { return {}; } }
+function pairsOn() { const v = readSettings().pairs; return process.env.CLUSTER === 'mainnet' && (typeof v === 'boolean' ? v : process.env.ENABLE_PAIRS === '1'); }
 const SECRET_FILE = path.join(DATA_DIR, 'image-secret.txt');
 const INDEX = path.join(__dirname, 'index.html');
 const COIN_PAGE = path.join(__dirname, 'coin.html');
@@ -201,7 +205,7 @@ function bearsState(res) {
   const recent = Object.keys(d.launched).map((k) => ({ bear: k === 'F' ? 'F' : Number(k) + 1, agent: k === 'F' ? PRIME.name : art.agentFor(Number(k), imageSecret()).name, name: d.launched[k].name, symbol: d.launched[k].symbol, mint: d.launched[k].mint, at: d.launched[k].at, ship: d.launched[k].ship || 'nova' }))
     .sort((x, y) => y.at - x.at).slice(0, 24);
   send(res, 200, {
-    cluster: c.cluster, pairs: PAIRS_ON, total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
+    cluster: c.cluster, pairs: pairsOn(), total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
     open: bears.filter((b) => b.state === 'open').length,
     founder: c.founderWallet ? (() => { const L = d.launched.F, H = d.holds.F; return { agent: PRIME, state: L ? 'launched' : H ? 'held' : 'reserved', short: shortAddr(c.founderWallet), symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null }; })() : null,
     platform: c.platformWallet ? { wallet: c.platformWallet, bps: PLATFORM_BPS } : null,
@@ -320,7 +324,7 @@ async function verifyLaunch(c, sig, mint) {
 // A quote mint from the page, kept only when pairs are on and it is a plain base58 address.
 function validQuote(v) {
   const q = text(v, 60);
-  return PAIRS_ON && B58_RE.test(q) && b58decode(q).length === 32 ? q : '';
+  return pairsOn() && B58_RE.test(q) && b58decode(q).length === 32 ? q : '';
 }
 
 function validShip(v) { return SHIPS.isShip(text(v, 20)) ? text(v, 20) : 'nova'; }
@@ -417,7 +421,7 @@ async function adminState(req, res) {
   const bears = [];
   for (let i = 0; i < c.total; i++) bears.push(row(String(i), 'Agent #' + String(i + 1).padStart(2, '0')));
   if (c.founderWallet || d.launched.F || d.holds.F) bears.unshift(row('F', 'Launch Bay'));
-  send(res, 200, { cluster: c.cluster, total: c.total, founderWallet: c.founderWallet || null, platformWallet: c.platformWallet || null, bears });
+  send(res, 200, { cluster: c.cluster, total: c.total, founderWallet: c.founderWallet || null, platformWallet: c.platformWallet || null, pairs: { on: pairsOn(), mainnet: process.env.CLUSTER === 'mainnet' }, bears });
 }
 
 // Owner only: tie a coin that is already on the chain to a bear, for when the automatic lock did not go through.
@@ -443,6 +447,16 @@ async function adminAttach(req, res) {
 }
 
 // Owner only: free a locked bear again (for example after a devnet test).
+async function adminPairs(req, res) {
+  if (!guardAdmin(req, res)) return;
+  const b = await jsonBody(req, res, 200); if (!b) return;
+  if (typeof b.on !== 'boolean') return send(res, 400, { error: 'Send {"on": true} or {"on": false}.' });
+  if (b.on && process.env.CLUSTER !== 'mainnet') return send(res, 400, { error: 'Pairs only work on mainnet. This server is on devnet.' });
+  const cur = readSettings(); cur.pairs = b.on;
+  fs.writeFileSync(SETTINGS_FILE + '.tmp', JSON.stringify(cur)); fs.renameSync(SETTINGS_FILE + '.tmp', SETTINGS_FILE);
+  send(res, 200, { ok: true, on: pairsOn() });
+}
+
 async function adminRelease(req, res) {
   if (!guardAdmin(req, res)) return;
   const b = await jsonBody(req, res, 500); if (!b) return;
@@ -554,6 +568,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/api/launched') return await launched(req, res);
     if (req.method === 'POST' && p === '/api/release') return await releaseHold(req, res);
     if (req.method === 'POST' && p === '/api/admin/release') return await adminRelease(req, res);
+    if (req.method === 'POST' && p === '/api/admin/pairs') return await adminPairs(req, res);
     if (req.method === 'POST' && p === '/api/admin/state') return await adminState(req, res);
     if (req.method === 'POST' && p === '/api/admin/attach') return await adminAttach(req, res);
     if (p === '/api/lut' && (req.method === 'GET' || req.method === 'POST')) return await lutStore(req, res, uu);

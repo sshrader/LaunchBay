@@ -60,7 +60,7 @@ Needs Node 20 or newer. The server itself uses no packages; only the browser lau
 
 ## Quote pairs (optional, off by default)
 
-Set `ENABLE_PAIRS=1` with `CLUSTER=mainnet` and the launch form gets a **Pair with** menu, filled from the quote coins the pump program lists (tokenized stocks and other listed coins). Leave it on SOL for a normal launch.
+Pairs are **off by default**. On a mainnet server, turn them on or off from `/admin` (the Quote pairs panel; saved in `DATA_DIR/settings.json`). `ENABLE_PAIRS=1` only sets the starting value before anything is saved. When on, the launch form gets a **Pair with** menu, filled from the quote coins the pump program lists (tokenized stocks and other listed coins). Leave it on SOL for a normal launch.
 
 A paired launch is create-only for now: no first buy and no creator fee split, so all creator fees go to the launcher's wallet and are paid in the quote coin. Pump coins whose quote sits on a deeper chain are refused. This path is untested on-chain: try one small mainnet launch before relying on it. The coin page notes that SOL figures do not apply to a paired coin.
 

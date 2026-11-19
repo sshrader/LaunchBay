@@ -42,6 +42,11 @@ a{color:var(--gold)}
     <div class="row"><input type="password" id="tok" placeholder="Admin password" autocomplete="off"><button class="go" id="go" type="button">Load agents</button></div>
     <div class="msg" id="msg"></div>
   </div>
+  <div class="panel" id="pairs" hidden>
+    <b>Quote pairs</b>
+    <p class="sub" style="margin:4px 0 12px">Lets launchers pair a coin with a listed quote coin such as SpaceX (SPCX). Off by default, mainnet only. Turning it off hides the Pair with menu right away; coins already launched stay as they are.</p>
+    <div class="row"><button class="go" id="ptog" type="button">Turn on</button><span class="msg" id="pmsg"></span></div>
+  </div>
   <div class="panel" id="list" hidden></div>
   <div class="panel" id="attach" hidden>
     <b>Attach a coin to an agent</b>
@@ -74,8 +79,18 @@ a{color:var(--gold)}
       if(r.ok){m.className='msg ok';m.textContent='Attached.';load()}else{m.className='msg err';m.textContent=r.json.error||('Failed ('+r.status+')')}
     }).catch(function(){$('agoBtn').disabled=false;m.className='msg err';m.textContent='Could not reach the server.'});
   });
+  var pairsOnNow=false;
+  function drawPairs(j){
+    var p=j.pairs||{on:false,mainnet:false};pairsOnNow=!!p.on;$('pairs').hidden=false;
+    var b=$('ptog');b.textContent=p.on?'Turn off':'Turn on';b.disabled=!p.on&&!p.mainnet;
+    var m=$('pmsg');m.className='msg'+(p.on?' ok':'');m.textContent=p.on?'Pairs are ON.':(p.mainnet?'Pairs are OFF.':'Pairs are OFF. This server is on devnet; pairs only work on mainnet.');
+  }
+  $('ptog').addEventListener('click',function(){
+    var b=$('ptog');b.disabled=true;
+    call('/api/admin/pairs',{on:!pairsOnNow}).then(function(r){if(r.ok)load();else{b.disabled=false;var m=$('pmsg');m.className='msg err';m.textContent=r.json.error||('Failed ('+r.status+')')}}).catch(function(){b.disabled=false});
+  });
   function draw(j){
-    drawAttach(j);
+    drawPairs(j);drawAttach(j);
     cluster=j.cluster;var n=$('net');n.hidden=false;n.textContent=j.cluster;n.className='net'+(j.cluster==='mainnet'?' main':'');
     var box=$('list');box.hidden=false;box.textContent='';
     j.bears.forEach(function(b){

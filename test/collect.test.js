@@ -71,6 +71,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
 
   let r = await (await fetch(base + '/api/bears')).json();
   check('quote pairs are off unless ENABLE_PAIRS is set', r.pairs === false);
+  { const pr = await fetch(base + '/api/admin/pairs', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.ADMIN_TOKEN }, body: JSON.stringify({ on: true }) }); check('the pairs switch cannot be turned on from devnet', pr.status === 400 || pr.status === 503, String(pr.status)); const pr2 = await fetch(base + '/api/admin/pairs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: true }) }); check('the pairs switch needs the admin password', pr2.status === 401 || pr2.status === 503, String(pr2.status)); }
   check('starts on devnet with 4 open bears', r.cluster === 'devnet' && r.total === 4 && r.open === 4 && r.bears.length === 4 && r.bears.every((b) => b.state === 'open'), JSON.stringify(r).slice(0, 200));
   check('no platform split until a wallet is set', r.platform === null);
   const platformWallet = newWallet().address;
