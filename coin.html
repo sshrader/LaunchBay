@@ -149,7 +149,7 @@ td .mini>div{height:100%;background:var(--gold)}
   function draw(j){
     var main=j.cluster==='mainnet',oc=j.onchain||{},cv=oc.curve;
     document.title=j.name+' ($'+j.symbol+') · Launch Bay';
-    if(j.quote){var fn=document.getElementById('finenote');if(fn)fn.textContent+=' This coin is priced in another coin ('+j.quote.slice(0,4)+'…'+j.quote.slice(-4)+'), not SOL, so the SOL figures above do not apply to it.'}
+    if(j.quote){var fn=document.getElementById('finenote');if(fn)fn.textContent+=' This coin is priced in another coin ('+(j.quote==='SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb'?'SpaceX, SPCX':j.quote.slice(0,4)+'…'+j.quote.slice(-4))+'), not SOL, so the SOL figures above do not apply to it.'}
     var n=$('net');n.textContent=main?'mainnet':'devnet · test';n.className='net'+(main?' main':'');
     $('pic').src=j.bear==='F'?'/api/founder.png?v=astro':'/api/preview/'+j.bear+'.png?v=astro';$('pic').alt=j.name;
     $('name').textContent=j.name;$('tick').textContent='$'+j.symbol;
