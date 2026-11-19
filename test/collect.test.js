@@ -70,6 +70,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   const launchTx = (wallet, mint, err) => ({ meta: { err: err || null }, transaction: { message: { header: { numRequiredSignatures: 2 }, accountKeys: [wallet, mint, PUMP, '11111111111111111111111111111111'] } } });
 
   let r = await (await fetch(base + '/api/bears')).json();
+  check('quote pairs are off unless ENABLE_PAIRS is set', r.pairs === false);
   check('starts on devnet with 4 open bears', r.cluster === 'devnet' && r.total === 4 && r.open === 4 && r.bears.length === 4 && r.bears.every((b) => b.state === 'open'), JSON.stringify(r).slice(0, 200));
   check('no platform split until a wallet is set', r.platform === null);
   const platformWallet = newWallet().address;

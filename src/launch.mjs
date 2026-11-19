@@ -513,8 +513,22 @@ async function devBuy({ step, conn, cfg, wallet, userKey, mint, lamports, devBuy
 // shareholders is an optional list of { address, shareBps } for the creator fee split (basis points, total 10000).
 // atomic (default true): with a dev buy, create and buy go in ONE transaction so nobody can buy in between.
 // allowSplitFallback: if the one-transaction launch cannot be built, fall back to two transactions. Devnet only.
-export async function createCoin({ cluster, wallet, user, name, symbol, uri, devBuySol, shareholders, atomic, allowSplitFallback, priorityMicroLamports, tableHint, onTable }, step) {
+// The quote coins a new coin can be priced in, as the pump program lists them (mainnet only). Each is { mint, source }.
+export async function listQuoteMints(cluster) {
   const cfg = config(cluster);
+  if (!cfg.mainnet) return [];
+  const online = new OnlinePumpSdk(new Connection(cfg.rpc, 'confirmed'));
+  const list = await online.fetchSupportedQuoteMints();
+  return list.map((q) => ({ mint: q.mint.toBase58(), source: String(q.source) }));
+}
+
+// quoteMint (optional, mainnet only): launch the coin priced in that quote coin instead of SOL, such as a tokenized stock.
+// A quote-pair launch is create-only for now: no first buy and no fee split, so nobody has to hold the quote coin to launch.
+export async function createCoin({ cluster, wallet, user, name, symbol, uri, devBuySol, shareholders, atomic, allowSplitFallback, priorityMicroLamports, tableHint, onTable, quoteMint }, step) {
+  const cfg = config(cluster);
+  const paired = !!quoteMint && quoteMint !== 'SOL';
+  if (paired && !cfg.mainnet) throw new Error('Quote pairs are only available on mainnet.');
+  if (paired) { devBuySol = 0; shareholders = null; }
   const conn = new Connection(cfg.rpc, 'confirmed');
   const userKey = new PublicKey(user);
   let mint = Keypair.generate();
@@ -548,6 +562,14 @@ export async function createCoin({ cluster, wallet, user, name, symbol, uri, dev
 
   if (!result.signature) {
     const tx = await phase(step, 'Build create transaction', async (done) => {
+      let qArgs = {};
+      if (paired) {
+        const r = await new OnlinePumpSdk(conn).resolveQuoteMint(new PublicKey(quoteMint));
+        const chain = r.pumpQuote && r.pumpQuote.accounts && r.pumpQuote.accounts.chain;
+        if (chain && chain.length) throw new Error('That pair sits on a deeper quote chain than this launcher supports yet. Pick another pair.');
+        qArgs = { quoteMint: r.mint, quoteTokenProgram: r.quoteTokenProgram };
+        if (r.pumpQuote) qArgs.pumpQuote = r.pumpQuote.accounts;
+      }
       const ix = await PUMP_SDK.createV2Instruction({
         mint: mint.publicKey,
         name,
@@ -555,12 +577,19 @@ export async function createCoin({ cluster, wallet, user, name, symbol, uri, dev
         uri,
         creator: userKey,
         user: userKey,
-        mayhemMode: false
+        mayhemMode: false,
+        ...qArgs
       });
-      const t = new Transaction().add(ix);
+      const t = new Transaction();
+      if (paired) {
+        t.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }));
+        const pr = priorityMicroLamports != null ? priorityMicroLamports : (cfg.priority || 0);
+        if (pr > 0) t.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: pr }));
+      }
+      t.add(ix);
       t.feePayer = userKey;
       t.recentBlockhash = (await conn.getLatestBlockhash('confirmed')).blockhash;
-      done('ok', 'Mint ' + mint.publicKey.toBase58(), explorerAddress(cfg, mint.publicKey.toBase58()));
+      done('ok', 'Mint ' + mint.publicKey.toBase58() + (paired ? ', priced in ' + quoteMint.slice(0, 4) + '...' + quoteMint.slice(-4) : ''), explorerAddress(cfg, mint.publicKey.toBase58()));
       return t;
     });
     result.signature = await signAndSend({

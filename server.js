@@ -12,6 +12,8 @@ const { statusReport } = require('./report');
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : path.join(__dirname, 'data'));
 fs.mkdirSync(DATA_DIR, { recursive: true });
+// Optional quote pairs (launching a coin priced in a tokenized stock or another listed coin). Off unless ENABLE_PAIRS=1, and mainnet only.
+const PAIRS_ON = process.env.ENABLE_PAIRS === '1' && process.env.CLUSTER === 'mainnet';
 const SECRET_FILE = path.join(DATA_DIR, 'image-secret.txt');
 const INDEX = path.join(__dirname, 'index.html');
 const COIN_PAGE = path.join(__dirname, 'coin.html');
@@ -198,7 +200,7 @@ function bearsState(res) {
   const recent = Object.keys(d.launched).map((k) => ({ bear: k === 'F' ? 'F' : Number(k) + 1, agent: k === 'F' ? PRIME.name : art.agentFor(Number(k), imageSecret()).name, name: d.launched[k].name, symbol: d.launched[k].symbol, mint: d.launched[k].mint, at: d.launched[k].at }))
     .sort((x, y) => y.at - x.at).slice(0, 8);
   send(res, 200, {
-    cluster: c.cluster, total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
+    cluster: c.cluster, pairs: PAIRS_ON, total: c.total, maxBuy: c.maxBuy, silhouette: art.silhouette(), bears, recent,
     open: bears.filter((b) => b.state === 'open').length,
     teams: ['CREW', 'SYNDICATE'].reduce((o, t) => { const m = bears.filter((b) => b.agent.team === t); o[t] = { total: m.length, launched: m.filter((b) => b.state === 'launched').length, open: m.filter((b) => b.state === 'open').length }; return o; }, {}),
     founder: c.founderWallet ? (() => { const L = d.launched.F, H = d.holds.F; return { agent: PRIME, state: L ? 'launched' : H ? 'held' : 'reserved', short: shortAddr(c.founderWallet), symbol: L ? L.symbol : null, name: L ? L.name : null, mint: L ? L.mint : null }; })() : null,
@@ -315,6 +317,12 @@ async function verifyLaunch(c, sig, mint) {
   return { wallet: signers[0], signers };
 }
 
+// A quote mint from the page, kept only when pairs are on and it is a plain base58 address.
+function validQuote(v) {
+  const q = text(v, 60);
+  return PAIRS_ON && B58_RE.test(q) && b58decode(q).length === 32 ? q : '';
+}
+
 // Step 3 (after the launch lands): the server checks the transaction on the chain, then locks the bear to the coin.
 async function launched(req, res) {
   const a = authHold(req, res); if (!a) return;
@@ -329,7 +337,7 @@ async function launched(req, res) {
   if (vr.wallet !== a.hold.wallet || !vr.signers.includes(a.hold.wallet)) return send(res, 422, { error: 'That transaction is not a pump.fun launch by your wallet for this coin.' });
   const p = a.hold.pending || {};
   const d = loadBears(a.c); // re-read before writing
-  d.launched[a.slot] = { mint, signature: sig, wallet: a.hold.wallet, name: p.name || '', symbol: p.symbol || '', uri: p.uri || '', at: Date.now(), split: !!text(b.splitSignature, 120), founder: a.slot === 'F' };
+  d.launched[a.slot] = { mint, signature: sig, wallet: a.hold.wallet, name: p.name || '', symbol: p.symbol || '', uri: p.uri || '', at: Date.now(), split: !!text(b.splitSignature, 120), founder: a.slot === 'F', quote: validQuote(b.quoteMint) };
   delete d.holds[a.slot];
   saveBears(a.c, d);
   send(res, 200, { ok: true, slot: bearLabel(a.slot) });
@@ -381,7 +389,7 @@ async function coinInfo(res, mint) {
   const agent = f.slot === 'F' ? { name: PRIME.name, role: PRIME.role, blurb: PRIME.blurb, ability: PRIME.ability } : (({ name, role, blurb, ability, team, breed }) => ({ name, role, blurb, ability, team, breed }))(art.agentFor(f.slot, imageSecret()));
   send(res, 200, {
     cluster: c.cluster, mint, bear: f.slot === 'F' ? 'F' : f.slot + 1, founder: !!f.rec.founder, total: c.total, name: f.rec.name, symbol: f.rec.symbol, dev: f.rec.wallet,
-    launchedAt: f.rec.at, signature: f.rec.signature, feeSplit: !!f.rec.split, platformBps: c.platformWallet ? PLATFORM_BPS : 0,
+    launchedAt: f.rec.at, signature: f.rec.signature, quote: f.rec.quote || '', feeSplit: !!f.rec.split, platformBps: c.platformWallet ? PLATFORM_BPS : 0,
     description: meta.description || '', twitter: meta.twitter || '', website: meta.website || '', onchain,
     agent, report: statusReport(agent, { launchedAt: f.rec.at, symbol: f.rec.symbol }, onchain, Date.now(), watchLoad(c).d[mint] || null),
   });

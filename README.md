@@ -57,3 +57,9 @@ Needs Node 20 or newer. The server itself uses no packages; only the browser lau
 - The 5% fee split depends on the launcher signing it.
 - A hold lasts 15 minutes. If a launch lands but the page closes before the agent is locked, it frees up when the hold expires (or you can attach it from `/admin`).
 - Back up the data folder. It holds which agent belongs to which coin.
+
+## Quote pairs (optional, off by default)
+
+Set `ENABLE_PAIRS=1` with `CLUSTER=mainnet` and the launch form gets a **Pair with** menu, filled from the quote coins the pump program lists (tokenized stocks and other listed coins). Leave it on SOL for a normal launch.
+
+A paired launch is create-only for now: no first buy and no creator fee split, so all creator fees go to the launcher's wallet and are paid in the quote coin. Pump coins whose quote sits on a deeper chain are refused. This path is untested on-chain: try one small mainnet launch before relying on it. The coin page notes that SOL figures do not apply to a paired coin.

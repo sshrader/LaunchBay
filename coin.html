@@ -126,7 +126,7 @@ td .mini>div{height:100%;background:var(--gold)}
   <h2>Dev and launch</h2>
   <div class="panel"><dl class="kv" id="dev"></dl></div>
 
-  <p class="fine">Numbers are read from the chain and refresh every minute. They describe this coin now and do not predict anything. A coin can lose all of its value, and its character has no promised value. The agent only reads and reports public numbers: it does not trade, hold funds or predict anything. GTA does not vouch for any coin launched here. Nothing here is financial advice.</p>
+  <p class="fine" id="finenote">Numbers are read from the chain and refresh every minute. They describe this coin now and do not predict anything. A coin can lose all of its value, and its character has no promised value. The agent only reads and reports public numbers: it does not trade, hold funds or predict anything. GTA does not vouch for any coin launched here. Nothing here is financial advice.</p>
 </div>
 </div>
 
@@ -148,6 +148,7 @@ td .mini>div{height:100%;background:var(--gold)}
   function draw(j){
     var main=j.cluster==='mainnet',oc=j.onchain||{},cv=oc.curve;
     document.title=j.name+' ($'+j.symbol+') · GTA';
+    if(j.quote){var fn=document.getElementById('finenote');if(fn)fn.textContent+=' This coin is priced in another coin ('+j.quote.slice(0,4)+'…'+j.quote.slice(-4)+'), not SOL, so the SOL figures above do not apply to it.'}
     var n=$('net');n.textContent=main?'mainnet':'devnet · test';n.className='net'+(main?' main':'');
     $('pic').src=j.bear==='F'?'/api/founder.png':'/api/preview/'+j.bear+'.png';$('pic').alt=j.name;
     $('name').textContent=j.name;$('tick').textContent='$'+j.symbol;

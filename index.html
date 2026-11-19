@@ -193,6 +193,7 @@ h2{font-style:italic;transform:skew(-6deg);transform-origin:left bottom;padding-
     <div><label for="tw">Twitter / X <span class="rv">optional</span></label><input type="text" id="tw" placeholder="@yourcoin or a post link" maxlength="120"></div>
     <div><label for="ws">Website <span class="rv">optional</span></label><input type="text" id="ws" placeholder="https://yourcoin.xyz" maxlength="120"></div>
   </div>
+  <div id="pairwrap" hidden><label for="pair">Pair with <span class="rv">optional, mainnet</span></label><select id="pair"><option value="SOL">SOL (standard)</option></select><div class="note" id="pairnote"></div></div>
   <div class="two">
     <div><label for="buy">Your first buy in SOL <span class="rv" id="buyhint">0 to 5</span></label><input type="text" id="buy" value="0.1" inputmode="decimal"></div>
     <div><label>Logo</label><div class="note" id="pick">A random crook is picked when you launch.</div><div id="customlogo" hidden style="margin-top:10px"><label for="logofile">Custom logo <span class="rv">founder only, optional</span></label><input type="file" id="logofile" accept="image/png,image/jpeg,image/webp"><div class="note">Leave empty to use the pet’s picture. It is squared to 512 px.</div></div></div>
@@ -300,6 +301,27 @@ h2{font-style:italic;transform:skew(-6deg);transform-origin:left bottom;padding-
     $('customlogo').hidden=!(st&&st.founder&&(pickSlot==='founder'||(pubkey&&short(pubkey)===st.founder.short)));
     $('feenote').textContent=pickSlot==='founder'?'Founder launch: all creator fees go to your wallet.':feeNoteBase;
   }
+  // optional quote pairs: only shown when the server has ENABLE_PAIRS on (mainnet). SOL stays the default.
+  var KNOWN_QUOTES={'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC'},pairsLoaded=false;
+  function pairValue(){var w=$('pairwrap');return(w&&!w.hidden&&$('pair').value!=='SOL')?$('pair').value:'SOL'}
+  function pairChanged(){
+    var paired=pairValue()!=='SOL',b=$('buy');
+    b.disabled=paired;if(paired)b.value='0';else if(b.value==='0')b.value='0.1';
+    $('pairnote').textContent=paired?'Quote pairs launch with no first buy, and the creator fee split is not applied yet, so all creator fees go to your wallet. Fees and trading are in the quote coin, not SOL.':'';
+  }
+  function setupPairs(j){
+    var w=$('pairwrap');w.hidden=!j.pairs;
+    if(!j.pairs||pairsLoaded||!window.SparkLaunch||!window.SparkLaunch.listQuoteMints)return;
+    pairsLoaded=true;
+    window.SparkLaunch.listQuoteMints(j.cluster).then(function(list){
+      var sel=$('pair');
+      list.forEach(function(q){
+        if(q.mint==='So11111111111111111111111111111111111111112'||KNOWN_QUOTES[q.mint]==='SOL')return;
+        var o=document.createElement('option');o.value=q.mint;o.textContent=(KNOWN_QUOTES[q.mint]||short(q.mint))+' ('+q.source+')';sel.appendChild(o);
+      });
+    }).catch(function(){$('pairnote').textContent='Could not load the list of pairs. SOL launches still work.'});
+    $('pair').addEventListener('change',pairChanged);
+  }
   function drawFounder(){
     var f=st&&st.founder,box=$('founder');
     if(!st){box.hidden=true;return}
@@ -339,7 +361,7 @@ h2{font-style:italic;transform:skew(-6deg);transform-origin:left bottom;padding-
       st=j;
       var n=$('net');n.textContent=j.cluster==='mainnet'?'mainnet':'devnet · test';n.className='net'+(j.cluster==='mainnet'?' main':'');
       $('fnet').textContent=j.cluster==='mainnet'?'mainnet, with real SOL':'devnet, which is free test money';
-      $('buyhint').textContent='0 to '+j.maxBuy;$('air').hidden=j.cluster==='mainnet';
+      $('buyhint').textContent='0 to '+j.maxBuy;$('air').hidden=j.cluster==='mainnet';setupPairs(j);
       $('feenote').textContent='';
       if(j.platform){var pct=j.platform.bps/100;var nb=document.createElement('b');nb.textContent=(100-pct)+'% to you';$('feenote').appendChild(document.createTextNode('Creator fees from trading: '));$('feenote').appendChild(nb);$('feenote').appendChild(document.createTextNode(' and '+pct+'% to GTA. You approve the split in your wallet right after the launch.'))}
       else $('feenote').textContent='Creator fees from trading all go to your wallet.';
@@ -479,11 +501,11 @@ h2{font-style:italic;transform:skew(-6deg);transform-origin:left bottom;padding-
       try{var lr=await fetch('/api/lut',{headers:{Authorization:'Bearer '+token}});if(lr.ok)hint=(await lr.json()).table}catch(e3){}
       var sh=null;
       if(!isFounder&&st.platform&&st.platform.wallet!==pubkey)sh=[{address:pubkey,shareBps:10000-st.platform.bps},{address:st.platform.wallet,shareBps:st.platform.bps}];
-      var out=await window.SparkLaunch.createCoin({cluster:st.cluster,wallet:p,user:pubkey,name:name,symbol:sym,uri:md.json.uri,devBuySol:+bv,shareholders:sh,allowSplitFallback:st.cluster==='devnet',tableHint:hint,
+      var out=await window.SparkLaunch.createCoin({cluster:st.cluster,wallet:p,user:pubkey,name:name,symbol:sym,uri:md.json.uri,devBuySol:+bv,shareholders:pairValue()!=='SOL'?null:sh,quoteMint:pairValue(),allowSplitFallback:st.cluster==='devnet',tableHint:hint,
         onTable:function(t){return fetch('/api/lut',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({table:t})}).catch(function(){})}},step);
       var s3=step('Lock the agent');
       var ln=null;
-      for(var tries=0;tries<3;tries++){ln=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||''},token);if(ln.ok||ln.status===409)break;await new Promise(function(ok){setTimeout(ok,2500)})}
+      for(var tries=0;tries<3;tries++){ln=await post('/api/launched',{mint:out.mint,signature:out.signature,splitSignature:out.splitSignature||'',quoteMint:pairValue()==='SOL'?'':pairValue()},token);if(ln.ok||ln.status===409)break;await new Promise(function(ok){setTimeout(ok,2500)})}
       var lockFailed=!(ln&&ln.ok);
       if(!lockFailed)s3('ok',bearName(pickSlot)+' is now locked to $'+sym);else s3('warn',(ln&&ln.json.error)||'Could not confirm. Your coin exists on-chain.');
       var box=$('result');box.textContent='';
