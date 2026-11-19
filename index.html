@@ -152,6 +152,11 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 @keyframes rumble{0%{transform:translate(0,0)}25%{transform:translate(1px,-1px)}50%{transform:translate(-1px,1px)}75%{transform:translate(1px,1px)}100%{transform:translate(-1px,0)}}
 @media(prefers-reduced-motion:reduce){#go.fueling{animation:none}}
 .holdhint{font:500 12px var(--mono);color:var(--dim);letter-spacing:.06em}
+.recent{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.recent a.lc{display:grid;grid-template-columns:54px minmax(0,1fr) 44px;align-items:center;gap:10px;border-radius:14px;padding:8px 12px 8px 6px}
+.recent .lcship{width:54px;height:64px;display:block}
+.recent .lcmeta{display:block;color:var(--good);margin-top:1px}
+.recent a.lc img{width:44px;height:44px}
 @keyframes rise{0%{opacity:0;transform:translateY(10px)}35%{opacity:0}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash{display:none}#splash .cap{animation:none}}
 </style>
@@ -188,7 +193,7 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
 
 <div class="founder" id="founder" hidden></div>
 
-<div id="recent" hidden><h2>Recent launches</h2><div class="recent" id="recentlist"></div></div>
+<div id="recent" hidden><h2>Launched coins</h2><div class="recent" id="recentlist"></div></div>
 
 <h2>On the pad</h2>
 <div class="bears" id="bears"></div>
@@ -364,10 +369,15 @@ h2{font-weight:600;padding-left:14px;border-left:3px solid var(--gold);text-shad
     if(!list||!list.length){box.hidden=true;return}
     list.forEach(function(r){
       if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(r.mint||''))return;
-      var a=document.createElement('a');a.href='/coin/'+r.mint;
-      var im=document.createElement('img');im.src=prev(r.bear);im.alt='';a.appendChild(im);
-      var d=document.createElement('div'),b=document.createElement('b'),sm=document.createElement('small');
-      b.textContent=r.name||('$'+r.symbol);sm.textContent='$'+r.symbol+' · '+ago(r.at);d.appendChild(b);d.appendChild(sm);a.appendChild(d);l.appendChild(a);
+      var sp=window.Ships&&window.Ships.list.filter(function(x){return x.id===r.ship})[0]||null;
+      var a=document.createElement('a');a.href='/coin/'+r.mint;a.className='lc';
+      var sc=document.createElement('canvas');sc.className='lcship';sc.setAttribute('aria-hidden','true');a.appendChild(sc);
+      var d=document.createElement('div'),b=document.createElement('b'),sm=document.createElement('small'),s2=document.createElement('small');
+      b.textContent=r.name||('$'+r.symbol);sm.textContent='$'+r.symbol+' · '+ago(r.at);
+      s2.className='lcmeta';s2.textContent=(sp?sp.name:'Ship')+' · '+(r.agent||'Astronaut');
+      d.appendChild(b);d.appendChild(sm);d.appendChild(s2);a.appendChild(d);
+      var im=document.createElement('img');im.src=prev(r.bear);im.alt=(r.agent||'Astronaut')+' logo';a.appendChild(im);
+      l.appendChild(a);if(sp&&window.Ships)window.Ships.thumb(sc,sp.id);
     });
     box.hidden=!l.firstChild;
   }
