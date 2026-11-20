@@ -252,10 +252,11 @@ td .mini>div{height:100%;background:var(--gold)}
     row('Mint',function(dd){dd.textContent=j.mint});
     $('page').hidden=false;
   }
-  function load(){
-    fetch('/api/coin/'+encodeURIComponent(mint)).then(function(r){if(r.status===404){$('err').style.display='block';$('page').hidden=true;return null}return r.json()}).then(function(j){if(j&&j.mint)draw(j)}).catch(function(){})
+  function load(fast){
+    fetch('/api/coin/'+encodeURIComponent(mint)+(fast?'?fast=1':'')).then(function(r){if(r.status===404){$('err').style.display='block';$('page').hidden=true;return null}return r.json()}).then(function(j){if(j&&j.mint&&!(fast&&gotFull))draw(j);if(j&&j.mint&&!fast)gotFull=true}).catch(function(){})
   }
-  load();setInterval(load,60000);
+  var gotFull=false;
+  load(true);load();setInterval(load,60000);
 })();
 </script>
 </body>

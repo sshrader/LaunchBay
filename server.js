@@ -382,7 +382,7 @@ function watchUpdate(c, mint, oc, now) {
   if (now - st.saved > 5000) { st.saved = now; try { fs.writeFileSync(watchFile(c) + '.tmp', JSON.stringify(st.d)); fs.renameSync(watchFile(c) + '.tmp', watchFile(c)); } catch (e) { /* the memory copy still works */ } }
   return w;
 }
-async function coinInfo(res, mint) {
+async function coinInfo(res, mint, fast) {
   const c = cfg();
   if (!B58_RE.test(mint)) return send(res, 404, { error: 'No such coin.' });
   const f = findLaunched(c, mint);
@@ -390,6 +390,7 @@ async function coinInfo(res, mint) {
   const key = c.cluster + ':' + mint, hit = coinCache.get(key);
   let onchain;
   if (hit && Date.now() - hit.at < 45000) onchain = hit.data;
+  else if (fast) onchain = hit ? hit.data : {};
   else {
     onchain = await chain.coinChain((method, params) => rpc(c, method, params), mint, f.rec.wallet, rpcUrl(c));
     coinCache.set(key, { at: Date.now(), data: onchain });
@@ -583,7 +584,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed');
     if (p === '/api/bears') return bearsState(res);
     if (p === '/api/prices') return await pricesApi(res);
-    { const m = /^\/api\/coin\/([1-9A-HJ-NP-Za-km-z]{32,44})$/.exec(p); if (m) return await coinInfo(res, m[1]); }
+    { const m = /^\/api\/coin\/([1-9A-HJ-NP-Za-km-z]{32,44})$/.exec(p); if (m) return await coinInfo(res, m[1], /[?&]fast=1/.test(req.url || '')); }
     if (/^\/coin\/[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p)) { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff' }); return res.end(fs.readFileSync(COIN_PAGE)); }
     if (p === '/admin') { res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' }); return res.end(fs.readFileSync(path.join(__dirname, 'admin.html'))); }
     if (p === '/galaxy.js') return serveStatic(res, path.join(__dirname, 'galaxy.js'), 'application/javascript; charset=utf-8', { 'Cache-Control': 'no-cache' });
