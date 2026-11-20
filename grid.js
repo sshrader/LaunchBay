@@ -350,8 +350,9 @@ function bgFor(c, bgIdx, seed) {
   const pc = [[[255, 190, 130], [190, 90, 80]], [[200, 170, 255], [100, 70, 210]], [[150, 230, 255], [60, 130, 210]]][seed % 3];
   c.ell(41.5, 9.5, 4.6, 4.6, (x, y) => mix(pc[0], dk(pc[1], 0.6), clamp(((x - 39) + (y - 7)) / 9, 0, 1)));
 }
-function paint(slot, secret) {
-  const t = traitsFor(slot, secret), L = SPECIES[t.species].looks[t.look];
+function paint(slot, secret, opts) {
+  const t = traitsFor(slot, secret), L = Object.assign({}, SPECIES[t.species].looks[t.look]);
+  if (opts && /^#[0-9a-f]{6}$/.test(opts.suit || '')) L.suit = opts.suit;
   const c = new Canvas(BGS[t.bg]); bgFor(c, t.bg, t.seed);
   DRAW[t.species](c, L, { skin: L.skin, eye: (t.look + t.species.length) % 4, brow: '#3a2a1e', hairStyle: t.hair, hairCol: t.hairCol, beard: t.beard, glasses: t.glasses });
   accessory(c, t.acc, ACC_COL[t.accColor]);
@@ -368,7 +369,7 @@ function cached(key, size, make) {
   return b;
 }
 
-const png = (slot, secret, size) => cached('a' + secret + ':' + slot, size || 512, () => paint(slot, secret));
+const png = (slot, secret, size, opts) => cached('a' + secret + ':' + slot + ':' + ((opts && opts.suit) || ''), size || 512, () => paint(slot, secret, opts));
 const founderPng = (size) => cached('prime', size || 512, paintFlagship);
 
 // a five-point star, as runs of squares on a 64 x 64 grid, for the locked tiles and the logo

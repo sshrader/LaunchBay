@@ -120,7 +120,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   r = await meta({ name: 'Honey', symbol: 'HONEY' }, 'nope'.repeat(10));
   check('coin details need a live bear hold', r.status === 401);
   r = await meta({ name: 'Honey', symbol: 'HONEY', logo: 'data:image/png;base64,AAAA' }, xa2.json.token);
-  check('only the founder can bring a custom logo', r.status === 403);
+  check('a bad custom logo is refused for anyone', r.status === 400);
   r = await meta({ name: 'Honey', symbol: 'HONEY', description: 'grr', twitter: '@Honey_Coin', website: 'honey.xyz' }, xa2.json.token);
   const jm = await r.json();
   const dm = jm.uri ? await (await fetch(base + new URL(jm.uri).pathname)).json() : {};
@@ -128,7 +128,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   const im = await fetch(base + new URL(dm.image).pathname);
   const png = Buffer.from(await im.arrayBuffer());
   check('coin image is the bear as a 512px PNG', im.status === 200 && im.headers.get('content-type') === 'image/png' && png.subarray(1, 4).toString() === 'PNG' && png.readUInt32BE(16) === 512 && png.readUInt32BE(20) === 512);
-  r = await meta({ name: 'Honey', symbol: 'HONEY', image: 'data:image/png;base64,AAAA' }, xa2.json.token);
+  r = await meta({ name: 'Honey', symbol: 'HONEY', image: 'data:image/png;base64,AAAA', ship: 'falcon', look: { hull: 2, accent: 3, suit: 99, call: 'Mooner <b>' } }, xa2.json.token);
   check('an uploaded image is ignored, the bear is always the logo', r.status === 201);
   r = await meta({ name: 'Honey', symbol: 'HONEY', website: 'javascript:alert(1)' }, xa2.json.token);
   check('bad website rejected', r.status === 400);
@@ -155,7 +155,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   r = await post('/api/launched', { mint, signature: s3 }, xa2.json.token);
   check('a transaction that is not a pump.fun launch is refused', r.status === 422);
   const s4 = sigOf(); txs[s4] = launchTx(a.address, mint);
-  r = await post('/api/launched', { mint, signature: s4, splitSignature: sigOf(), ship: 'falcon' }, xa2.json.token); r = { status: r.status, json: await r.json() };
+  r = await post('/api/launched', { mint, signature: s4, splitSignature: sigOf() }, xa2.json.token); r = { status: r.status, json: await r.json() };
   check('a real launch locks the bear', r.status === 200 && r.json.ok && r.json.slot === SL, r.status + ' ' + JSON.stringify(r.json));
   r = await (await fetch(base + '/api/bears')).json();
   const locked = r.bears.find((x) => x.n === SL);
@@ -181,6 +181,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   check('coin page data has holders, the dev share and top 10 without the curve', cj.onchain.holders.length === 3 && cj.onchain.holders[0].isCurve && cj.onchain.holders[1].isDev && cj.onchain.devHoldPct === 5 && cj.onchain.top10Pct === 7, JSON.stringify(cj.onchain).slice(0, 300));
   check('/api/bears gives every agent a name and role', (await (await fetch(base + '/api/bears')).json()).bears.every((x) => x.agent && x.agent.name && x.agent.role));
   check('the chosen spaceship is saved and shown on the coin page', cj.ship === 'falcon', String(cj.ship));
+  check('colours are kept (a bad index falls back to 0), the callsign is cleaned, and the coin logo is linked', cj.look && cj.look.hull === 2 && cj.look.accent === 3 && cj.look.suit === 0 && cj.look.call === 'Mooner b' && /^\/images\/[a-f0-9]{16}\.png$/.test(cj.logo), JSON.stringify(cj.look) + ' ' + cj.logo);
   check('coin page data names its agent', cj.agent && /^[A-Z]+$/.test(cj.agent.name) && /^[A-Z]+$/.test(cj.agent.role) && cj.agent.blurb.length > 10, JSON.stringify(cj.agent));
   check('coin page data has an agent report built from the chain numbers', cj.report && cj.report.lines.some((l) => l.kind === 'curve' && /12\.6% full/.test(l.text)) && cj.report.lines.some((l) => l.kind === 'dev' && /holds 5% of the supply/.test(l.text)) && cj.report.status === 'steady' && /not advice/.test(cj.report.note), JSON.stringify(cj.report).slice(0, 300));
   check('an unknown coin has no page', (await fetch(base + '/api/coin/' + b58encode(crypto.randomBytes(32)))).status === 404);

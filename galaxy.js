@@ -24,6 +24,7 @@
       coins = (list || []).slice(0, 24).map(function (r, i) {
         var o = keep[r.mint], lane = i % 6, ring = Math.floor(i / 6);
         var c = o || { th: rnd(i + 3) * 6.28 };
+        c.look = r.look || null; c.logoImg = r.logo ? portrait('/images/' + r.logo + '.png') : null; c.call = r.call || '';
         c.mint = r.mint; c.name = r.name || ('$' + r.symbol); c.sym = r.symbol; c.ship = r.ship || 'nova'; c.agent = r.agent || 'Astronaut'; c.at = r.at; c.bear = r.bear; c.flag = r.bear === 'F';
         c.lane = c.flag ? 0 : 1 + lane + ring * 0.55; c.dir = i % 2 ? -1 : 1; c.speed = (0.20 - 0.022 * c.lane) * c.dir; c.tilt = (rnd(i + 11) - 0.5) * 0.7;
         c.face = portrait(c.flag ? '/api/founder.png?v=astro' : '/api/preview/' + r.bear + '.png?v=astro');
@@ -66,7 +67,7 @@
       ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.head);
       if (c.flag) { var g = ctx.createRadialGradient(0, 0, 4, 0, 0, 90 * c.sc * 2.4); g.addColorStop(0, 'rgba(255,217,138,.4)'); g.addColorStop(1, 'rgba(255,217,138,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 90 * c.sc * 2.4, 0, 7); ctx.fill(); }
       if (act) { ctx.strokeStyle = CY; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -8 * c.sc, 74 * c.sc * 1.15, 0, 7); ctx.stroke(); }
-      root.Ships.draw(ctx, c.ship, 0, 0, c.sc * (act ? 1.12 : 1), 0.55, t + c.th * 9);
+      root.Ships.draw(ctx, c.ship, 0, 0, c.sc * (act ? 1.12 : 1), 0.55, t + c.th * 9, c.look, c.logoImg);
       ctx.restore();
       // ticker label with the astronaut, kept upright under the ship
       var ly = c.y + 52 * c.sc + 18, label = '$' + c.sym, w;
@@ -92,7 +93,7 @@
       if (best !== hover) { hover = best; cv.style.cursor = hover ? 'pointer' : 'default'; }
       var show = hover || coins.filter(function (c) { return c.mint === selected; })[0];
       if (show && tip) {
-        tip.hidden = false; if (tip.getAttribute('data-m') !== show.mint) { tip.setAttribute('data-m', show.mint); tip.textContent = ''; var b = document.createElement('b'); b.textContent = show.name; var s1 = document.createElement('span'); s1.textContent = '$' + show.sym + ' · ' + ago(show.at); var s2 = document.createElement('span'); s2.className = 'g'; var sp = root.Ships.list.filter(function (x) { return x.id === show.ship; })[0]; s2.textContent = (sp ? sp.name : 'Ship') + ' · ' + show.agent; var s3 = document.createElement('span'); s3.className = 'o'; s3.textContent = 'Click to open'; tip.appendChild(b); tip.appendChild(s1); tip.appendChild(s2); tip.appendChild(s3); }
+        tip.hidden = false; if (tip.getAttribute('data-m') !== show.mint) { tip.setAttribute('data-m', show.mint); tip.textContent = ''; var b = document.createElement('b'); b.textContent = show.name; var s1 = document.createElement('span'); s1.textContent = '$' + show.sym + ' · ' + ago(show.at); var s2 = document.createElement('span'); s2.className = 'g'; var sp = root.Ships.list.filter(function (x) { return x.id === show.ship; })[0]; s2.textContent = (sp ? sp.name : 'Ship') + ' · ' + (show.call || show.agent); var s3 = document.createElement('span'); s3.className = 'o'; s3.textContent = 'Click to open'; tip.appendChild(b); tip.appendChild(s1); tip.appendChild(s2); tip.appendChild(s3); }
         var tw = tip.offsetWidth || 170, tx = Math.min(W - tw - 8, Math.max(8, show.x + 28)), ty = Math.max(8, Math.min(H - 90, show.y - 40)); tip.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
       } else if (tip) { tip.hidden = true; tip.removeAttribute('data-m'); }
     };

@@ -82,6 +82,10 @@ td .mini>div{height:100%;background:var(--gold)}
 .agentbox .abil .does{margin:0 0 10px;color:var(--dim);font-size:14px}
 .agentbox .stamp{margin:10px 0 0;font-size:12px;color:var(--dim)}
 [hidden]{display:none!important}
+.orbitbox canvas{display:block;width:100%;height:190px;border-radius:10px}
+.patchbox{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:20px;align-items:center}
+.patchbox canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:50%}
+@media(max-width:640px){.patchbox{grid-template-columns:1fr}.patchbox canvas{max-width:320px;margin:0 auto}}
 </style>
 </head>
 <body>
@@ -107,6 +111,19 @@ td .mini>div{height:100%;background:var(--gold)}
     </div>
   </section>
 
+  <h2>Orbit tracker</h2>
+  <div class="panel orbitbox"><canvas id="orbit" aria-label="Orbit tracker: how far this coin has climbed its bonding curve"></canvas><div class="note" id="orbittxt"></div></div>
+
+  <h2>Mission patch</h2>
+  <div class="panel patchbox">
+    <canvas id="patch" aria-label="Mission patch for this coin"></canvas>
+    <div class="patchside">
+      <p class="note" style="margin:0 0 12px">A round badge with this coin’s astronaut, rocket and callsign. Download it, then attach it to a post.</p>
+      <div class="row"><button class="btn go" id="pdl" type="button">Download patch</button><a class="btn" id="ptw" href="#" target="_blank" rel="noopener">Post on X</a></div>
+      <div class="note" id="pmsg" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <div class="heat" id="heat" hidden></div>
 
   <h2>Case file</h2>
@@ -131,6 +148,7 @@ td .mini>div{height:100%;background:var(--gold)}
 </div>
 
 <script src="/ships.js"></script>
+<script src="/mission.js"></script>
 <script src="/gridfx.js"></script>
 <script>
 (function(){
@@ -142,6 +160,7 @@ td .mini>div{height:100%;background:var(--gold)}
   function fmt(n,d){if(n==null||!isFinite(n))return '–';var a=Math.abs(n);if(a>=1e9)return (n/1e9).toFixed(2)+'B';if(a>=1e6)return (n/1e6).toFixed(2)+'M';if(a>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(d==null?2:d)}
   function pct(n){return n==null?'–':n.toFixed(n<10?2:1)+'%'}
   function tile(label,value,sub){var t=el('div','tile');t.appendChild(el('small',null,label));t.appendChild(el('b',null,value));if(sub)t.appendChild(el('i',null,sub));return t}
+  var mission={};
   function copy(btn,text){btn.onclick=function(){try{navigator.clipboard.writeText(text).then(function(){btn.textContent='Copied'},function(){btn.textContent='Select and copy'})}catch(e){btn.textContent='Select and copy'}}}
   function ext(a,href,label,cls){var x=el('a',cls||'btn',label);x.href=href;x.target='_blank';x.rel='noopener';a.appendChild(x)}
   function addr(c,a){return 'https://explorer.solana.com/address/'+a+(c==='mainnet'?'':'?cluster=devnet')}
@@ -156,7 +175,8 @@ td .mini>div{height:100%;background:var(--gold)}
     var chips=$('chips');chips.textContent='';
     chips.appendChild(el('span','chip'+(j.founder?' good':''),j.founder?'Launch Bay · flagship, one of one':((j.agent?j.agent.name+' · '+j.agent.role.toLowerCase():'Agent #'+String(j.bear).padStart(2,'0'))+' · '+String(j.bear).padStart(2,'0')+' of '+j.total)));
     chips.appendChild(el('span','chip'+(cv&&cv.complete?' good':''),cv?(cv.complete?'Graduated':'On the bonding curve'):'Curve not read'));
-    if(window.Ships&&j.ship){var sp=window.Ships.list.filter(function(x){return x.id===j.ship})[0];if(sp){var sc=el('span','chip');var cvs=document.createElement('canvas');cvs.style.cssText='width:24px;height:30px;vertical-align:middle;margin-right:6px';sc.appendChild(cvs);sc.appendChild(document.createTextNode('Launched in the '+sp.name));chips.appendChild(sc);window.Ships.thumb(cvs,sp.id)}}
+    if(window.Ships&&j.ship){var sp=window.Ships.list.filter(function(x){return x.id===j.ship})[0];if(sp){var sc=el('span','chip');var cvs=document.createElement('canvas');cvs.style.cssText='width:24px;height:30px;vertical-align:middle;margin-right:6px';sc.appendChild(cvs);sc.appendChild(document.createTextNode('Launched in the '+sp.name));chips.appendChild(sc);window.Ships.thumb(cvs,sp.id,j.look,null)}}
+    if(j.look&&j.look.call)chips.appendChild(el('span','chip good','Callsign · '+j.look.call));
     $('desc').textContent=j.description||'';
     var ab=$('agentbox');ab.textContent='';
     if(j.agent){
@@ -193,6 +213,21 @@ td .mini>div{height:100%;background:var(--gold)}
     T.appendChild(tile('Top 10',pct(oc.top10Pct),'of supply, curve excluded'));
     $('curvebox').hidden=!cv;
     if(cv){$('curvebar').style.width=cv.progress+'%';$('curvetxt').textContent=cv.complete?'Complete: moved to a DEX':cv.progress.toFixed(1)+'% filled'}
+    (function(){
+      if(!window.Mission||!window.Ships)return;
+      var shipId=j.ship||'nova',look=j.look||null,logo=null,face=null,done=!!(cv&&cv.complete);
+      if(!mission.orbit){
+        logo=new Image();if(j.logo)logo.src=j.logo;face=new Image();face.src=j.bear==='F'?'/api/founder.png?v=astro':'/api/preview/'+j.bear+'.png?v=astro';
+        mission.orbit=new window.Mission.Orbit($('orbit'),{ship:shipId,look:look,logo:logo});mission.orbit.start();
+        var draw=function(){window.Mission.drawPatch($('patch'),{sym:j.symbol,name:j.name,call:look&&look.call,agent:j.agent&&j.agent.name,role:j.agent&&j.agent.role,face:face,ship:shipId,look:look,logo:logo,mint:mint})};
+        logo.onload=draw;face.onload=draw;draw();
+        $('pdl').addEventListener('click',function(){try{$('patch').toBlob(function(b){var u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='launchbay-'+String(j.symbol).toLowerCase()+'-patch.png';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);$('pmsg').textContent='Saved. Attach it to your post.'})}catch(e){$('pmsg').textContent='Could not make the image in this browser.'}});
+        var txt='$'+j.symbol+' just launched on Launch Bay'+(look&&look.call?' with callsign '+look.call:'')+'. Mission patch attached.',url=location.origin+'/coin/'+mint;
+        $('ptw').href='https://x.com/intent/post?text='+encodeURIComponent(txt)+'&url='+encodeURIComponent(url);
+      }
+      mission.orbit.set(cv?cv.progress:0,done);
+      $('orbittxt').textContent=cv?(done?'This coin filled its curve and moved to a DEX: the rocket made it to orbit.':window.Mission.stageName(cv.progress,false)+'. The rocket reaches orbit when the curve is 100% filled.'):'The curve has not been read yet, so the rocket waits on the pad.';
+    })();
 
     var H=$('holders');H.textContent='';
     (oc.holders||[]).forEach(function(h,i){
