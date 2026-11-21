@@ -1,5 +1,5 @@
 'use strict';
-// The astronauts for Launch Bay: eight original characters drawn as 48 x 48 portraits behind a helmet visor, plus a one-of-one Titan for the flagship.
+// The astronauts for Moon Pad: eight original characters drawn as 48 x 48 portraits behind a helmet visor, plus a one-of-one Titan for the flagship.
 // Everything is drawn here with a tiny rasterizer and a PNG encoder: no libraries, no image files.
 const crypto = require('crypto');
 const { encodePng } = require('./isorender');

@@ -1,4 +1,4 @@
-# Launch Bay
+# Moon Pad
 
 A pump.fun launchpad with a deep-space theme: every coin claims one of eight original astronauts as its logo. Anyone can launch from their own wallet. The character they get is locked to their coin for good, and reports the coin's public numbers (a five-star heat level on the coin page) read from the chain.
 
@@ -52,7 +52,7 @@ Needs Node 20 or newer. The server itself uses no packages; only the browser lau
 
 ## Limits to know
 
-- Anyone can launch, so names and tickers go through a basic word filter only. Launch Bay does not vouch for any coin.
+- Anyone can launch, so names and tickers go through a basic word filter only. Moon Pad does not vouch for any coin.
 - The agents report; they do not act. A coin's agent has no promised value and says nothing about where the price is going.
 - The 5% fee split depends on the launcher signing it.
 - A hold lasts 15 minutes. If a launch lands but the page closes before the agent is locked, it frees up when the hold expires (or you can attach it from `/admin`).

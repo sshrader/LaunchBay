@@ -1,5 +1,5 @@
 'use strict';
-// Launch Bay's moving backdrops, plain 2D canvas, in a deep-space style: a Milky Way band, nebula glow, a ringed planet, a gas giant,
+// Moon Pad's moving backdrops, plain 2D canvas, in a deep-space style: a Milky Way band, nebula glow, a ringed planet, a gas giant,
 // drifting stars and shooting stars. GridBg is the quiet scene behind the pages; GridIntro is the loading-screen style intro with a
 // countdown, four pilots in portholes and a rocket that lifts off when it reaches zero.
 // Both stop when the page is hidden and respect reduced motion. Everything here is original art drawn in code.

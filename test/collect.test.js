@@ -85,7 +85,7 @@ function check(label, ok, extra) { console.log((ok ? 'PASS ' : 'FAIL ') + label 
   check('the voxel endpoints are gone', (await fetch(base + '/api/agent/1/voxels.json')).status === 404);
   check('the old admin launch page is gone', (await fetch(base + '/launch')).status === 404);
   const home = await fetch(base + '/');
-  check('home page is Launch Bay', home.status === 200 && (await home.text()).includes('Launch Bay'));
+  check('home page is Moon Pad', home.status === 200 && (await home.text()).includes('Moon Pad'));
 
   const a = newWallet(), b = newWallet(), c = newWallet(), d = newWallet(), e = newWallet();
 

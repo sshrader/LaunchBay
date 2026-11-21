@@ -1,5 +1,5 @@
 'use strict';
-// Launch Bay's spaceships: six original designs drawn in code on a 2D canvas, nose up, origin at the middle of the hull.
+// Moon Pad's spaceships: six original designs drawn in code on a 2D canvas, nose up, origin at the middle of the hull.
 // The launch form lets you pick one; the coin page shows it; a short lift-off scene plays after a launch.
 // This file runs in the browser (window.Ships) and in Node (the server only needs the list of ids).
 (function (root) {

@@ -1,5 +1,5 @@
 'use strict';
-// Launch Bay's coin-page extras, plain 2D canvas: the orbit tracker (how far the coin has climbed its bonding curve) and the mission patch
+// Moon Pad's coin-page extras, plain 2D canvas: the orbit tracker (how far the coin has climbed its bonding curve) and the mission patch
 // (a round embroidered-style badge with the astronaut, the ship, the ticker and the callsign, to download and share). Original art.
 (function (root) {
   var CY = '#4de3ff', VI = '#9d7bff', MG = '#ff4fd8', AM = '#ffd98a';
@@ -74,7 +74,7 @@
     root.Ships.draw(ctx, o.ship, C, 672, 1.3, 0.7, 1.2, o.look, o.logo);
     ctx.restore();
     // text on the border
-    arcText(ctx, 'LAUNCH BAY  ·  MISSION PATCH', C, C, 414, true, 38, '#eef2ff', 5);
+    arcText(ctx, 'MOON PAD  ·  MISSION PATCH', C, C, 414, true, 38, '#eef2ff', 5);
     arcText(ctx, ('$' + (o.sym || '')).toUpperCase() + '  ·  ' + String(o.name || '').toUpperCase().slice(0, 22), C, C, 414, false, 40, acc, 5);
     // name tag across the lower part of the sky
     var tag = (o.call || o.agent || 'ASTRONAUT').toUpperCase(), role = (o.role || '').toUpperCase();
