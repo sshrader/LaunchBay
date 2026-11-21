@@ -169,7 +169,7 @@ function saveBears(c, d) { const f = bearsFile(c); fs.writeFileSync(f + '.tmp', 
 const holdFor = (d, token) => { for (const k of Object.keys(d.holds)) if (d.holds[k].token === token) return { slot: k === 'F' ? 'F' : Number(k), hold: d.holds[k] }; return null; };
 const bearLabel = (slot) => (slot === 'F' ? 'founder' : slot + 1); // what the pages are told
 const FAVICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#05060f"/><circle cx="32" cy="32" r="12" fill="#9d7bff"/><ellipse cx="32" cy="32" rx="25" ry="7" fill="none" stroke="#4de3ff" stroke-width="3" transform="rotate(-22 32 32)"/><circle cx="50" cy="14" r="2" fill="#fff"/><circle cx="13" cy="50" r="1.5" fill="#fff"/></svg>';
-const PRIME = { name: 'Launch Bay', role: 'FLAGSHIP', blurb: 'The one-of-one flagship. The Admiral: a gold-trimmed white suit, a gold visor, silver brows and a captain’s patch. Reserved for Launch Bay’s founder wallet.', ability: art.ABILITIES.FLAGSHIP };
+const PRIME = { name: 'Titan', role: 'FLAGSHIP', blurb: 'The one-of-one flagship. Titan: a gold-trimmed white suit, a gold visor, silver brows and a captain’s patch. Reserved for the founder wallet.', ability: art.ABILITIES.FLAGSHIP };
 const shortAddr = (a) => a.slice(0, 4) + '…' + a.slice(-4);
 
 // BTC / SOL spot prices for the header ticker (cached 30s, tries several free sources)
@@ -428,7 +428,7 @@ async function adminState(req, res) {
   };
   const bears = [];
   for (let i = 0; i < c.total; i++) bears.push(row(String(i), 'Agent #' + String(i + 1).padStart(2, '0')));
-  if (c.founderWallet || d.launched.F || d.holds.F) bears.unshift(row('F', 'Launch Bay'));
+  if (c.founderWallet || d.launched.F || d.holds.F) bears.unshift(row('F', 'Titan'));
   send(res, 200, { cluster: c.cluster, total: c.total, founderWallet: c.founderWallet || null, platformWallet: c.platformWallet || null, pairs: { on: pairsOn(), mainnet: process.env.CLUSTER === 'mainnet' }, bears });
 }
 

@@ -1,5 +1,5 @@
 'use strict';
-// The astronauts for Launch Bay: eight original characters drawn as 48 x 48 portraits behind a helmet visor, plus a one-of-one Admiral for the flagship.
+// The astronauts for Launch Bay: eight original characters drawn as 48 x 48 portraits behind a helmet visor, plus a one-of-one Titan for the flagship.
 // Everything is drawn here with a tiny rasterizer and a PNG encoder: no libraries, no image files.
 const crypto = require('crypto');
 const { encodePng } = require('./isorender');
@@ -323,7 +323,7 @@ const DRAW = {
       post(c) { c.ell(24, 47, 1, 1, '#ffffff', 0); } });
   },
 };
-// the Admiral: the flagship. A gold-trimmed white suit, gold glass, silver brows and a captain's patch
+// Titan: the flagship. A gold-trimmed white suit, gold glass, silver brows and a captain's patch
 function admiral(c) {
   const L = { suit: '#f3f4fa', trim: '#e8b82e', glass: '#ffd98a', cap: '#f3f4fa', skin: 1 };
   astro(c, L, { skin: 1, eye: 1, brow: '#c9ccd6' }, { tint: 0.24, shell: '#f0d98a', face: { wide: true, stubble: true, brow: '#c9ccd6', tilt: 0.4 },
